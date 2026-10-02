@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Piggy widget</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  :root { --bg: #e9e4f0; }
+  body { margin:0; background: linear-gradient(160deg,#cfd9f2,#ead7ec 55%,#f6e3d6); font-family: -apple-system, "SF Pro Rounded", "Apple SD Gothic Neo", "Pretendard", sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .row { display:flex; gap:28px; flex-wrap:wrap; justify-content:center; padding:32px; }
+  .cap { text-align:center; margin-top:10px; font-size:13px; color:#4a4458; font-weight:600; }
+  .tile { width:220px; height:220px; border-radius:46px; background: rgba(255,255,255,.92); box-shadow: 0 10px 30px rgba(60,40,90,.18); position:relative; overflow:hidden; }
+  .tile.dim { background: rgba(255,255,255,.92); }
+  .coins { position:absolute; top:16px; left:0; right:0; display:flex; justify-content:center; gap:10px; z-index:2; }
+  .coin { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:21px; color:#fff; position:relative; }
+  .coin::after { content:""; position:absolute; inset:3px; border-radius:50%; border:1.5px solid rgba(255,255,255,.45); }
+  .c-run { background: radial-gradient(circle at 32% 28%, #ffb37a, #f2711c 60%, #c8520b); box-shadow: 0 3px 0 #a9440a, 0 6px 10px rgba(200,82,11,.35); }
+  .c-book { background: radial-gradient(circle at 32% 28%, #b8a8ff, #7058e8 60%, #4f3bc0); box-shadow: 0 3px 0 #3f2f9c, 0 6px 10px rgba(80,60,190,.35); }
+  .c-git { background: radial-gradient(circle at 32% 28%, #8cc6ff, #2f86f0 60%, #1a62c4); box-shadow: 0 3px 0 #154f9e, 0 6px 10px rgba(30,100,200,.35); }
+  .c-empty { background: transparent; border:2px dashed #c9c2d3; color:#c9c2d3; box-shadow:none; }
+  .c-empty::after { display:none; }
+  .amount { position:absolute; left:0; right:0; bottom:18px; text-align:center; font-size:30px; font-weight:800; letter-spacing:-.5px; color:#3a2440; z-index:2; }
+  .amount small { font-size:18px; font-weight:700; margin-right:1px; }
+  .amount.neg { color:#e0383e; }
+  svg.pig { position:absolute; left:28px; top:58px; }
+  .lock { width:240px; height:96px; border-radius:24px; background: rgba(30,30,40,.35); backdrop-filter: blur(10px); display:flex; align-items:center; gap:14px; padding:0 18px; box-sizing:border-box; color:#fff; }
+  .lock .n { font-size:28px; font-weight:800; letter-spacing:-.5px; }
+  .lock .dots { display:flex; gap:6px; margin-top:4px; }
+  .lock .d { width:22px; height:22px; border-radius:50%; background:#fff; color:#222; display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .lock .d.e { background:transparent; border:1.5px dashed rgba(255,255,255,.7); color:rgba(255,255,255,.7); box-sizing:border-box; }
+</style></head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <radialGradient id="glass" cx="38%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#fff2f6"/><stop offset=".55" stop-color="#ffd3e1"/><stop offset="1" stop-color="#f7a9c3"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd86b"/><stop offset=".5" stop-color="#f6b72e"/><stop offset="1" stop-color="#d98d10"/>
+    </linearGradient>
+    <radialGradient id="snout" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#ffd6e3"/><stop offset="1" stop-color="#f293b4"/>
+    </radialGradient>
+    <radialGradient id="redglass" cx="38%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#fff3f3"/><stop offset=".6" stop-color="#ffd2d2"/><stop offset="1" stop-color="#f4a3a3"/>
+    </radialGradient>
+    <clipPath id="body"><ellipse cx="80" cy="66" rx="62" ry="48"/></clipPath>
+  </defs>
+</svg>
+
+<div class="row">
+
+  <!-- 평소: 40% 남음 -->
+  <div>
+    <div class="tile">
+      <div class="coins">
+        <div class="coin c-run"><i class="ti ti-run"></i></div>
+        <div class="coin c-book"><i class="ti ti-book"></i></div>
+        <div class="coin c-empty"><i class="ti ti-brand-github"></i></div>
+      </div>
+      <svg class="pig" width="164" height="120" viewBox="0 0 164 132">
+        <ellipse cx="80" cy="124" rx="52" ry="5" fill="rgba(90,40,70,.12)"/>
+        <rect x="38" y="96" width="16" height="26" rx="8" fill="#f293b4"/>
+        <rect x="104" y="96" width="16" height="26" rx="8" fill="#f293b4"/>
+        <path d="M18 62 q-14 -2 -11 -14 q3 -9 11 -4 q6 5 -3 9" fill="none" stroke="#f293b4" stroke-width="4" stroke-linecap="round"/>
+        <path d="M92 26 Q100 2 122 14 Q118 30 106 36 Z" fill="#f7a9c3"/>
+        <ellipse cx="80" cy="66" rx="62" ry="48" fill="url(#glass)"/>
+        <g clip-path="url(#body)">
+          <rect x="10" y="78" width="140" height="60" fill="url(#gold)"/>
+          <path d="M10 80 Q40 72 80 80 T150 78 L150 86 L10 86 Z" fill="#ffe58f" opacity=".9"/>
+          <ellipse cx="46" cy="80" rx="9" ry="3.5" fill="#ffd25a" stroke="#d48a0c" stroke-width="1.2"/>
+          <ellipse cx="72" cy="77" rx="9" ry="3.5" fill="#ffd25a" stroke="#d48a0c" stroke-width="1.2"/>
+          <ellipse cx="100" cy="80" rx="9" ry="3.5" fill="#ffd25a" stroke="#d48a0c" stroke-width="1.2"/>
+        </g>
+        <ellipse cx="80" cy="66" rx="62" ry="48" fill="none" stroke="#ee8fb0" stroke-width="2.5"/>
+        <path d="M34 40 Q48 24 70 22" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".85"/>
+        <path d="M28 52 Q29 48 31 45" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".7"/>
+        <rect x="64" y="17" width="30" height="7" rx="3.5" fill="#b9567c"/>
+        <path d="M102 30 Q112 10 130 20 Q124 34 112 38 Z" fill="#f7a9c3" stroke="#ee8fb0" stroke-width="2"/>
+        <ellipse cx="143" cy="66" rx="13" ry="16" fill="url(#snout)" stroke="#ee8fb0" stroke-width="2"/>
+        <ellipse cx="139" cy="62" rx="2.2" ry="3.2" fill="#b9567c"/><ellipse cx="146" cy="62" rx="2.2" ry="3.2" fill="#b9567c"/>
+        <circle cx="120" cy="50" r="5" fill="#3a2440"/><circle cx="121.8" cy="48.3" r="1.7" fill="#fff"/>
+        <ellipse cx="126" cy="70" rx="8" ry="4.5" fill="#ff7fa6" opacity=".45"/>
+      </svg>
+      <div class="amount"><small>₩</small>4,000</div>
+    </div>
+    <div class="cap">평소 (남은 돈 40%)</div>
+  </div>
+
+  <!-- 꽉 참 + 갓생 -->
+  <div>
+    <div class="tile">
+      <div class="coins">
+        <div class="coin c-run"><i class="ti ti-run"></i></div>
+        <div class="coin c-book"><i class="ti ti-book"></i></div>
+        <div class="coin c-git"><i class="ti ti-brand-github"></i></div>
+      </div>
+      <svg class="pig" width="164" height="120" viewBox="0 0 164 132">
+        <ellipse cx="80" cy="124" rx="52" ry="5" fill="rgba(90,40,70,.12)"/>
+        <rect x="38" y="96" width="16" height="26" rx="8" fill="#f293b4"/>
+        <rect x="104" y="96" width="16" height="26" rx="8" fill="#f293b4"/>
+        <path d="M18 62 q-14 -2 -11 -14 q3 -9 11 -4 q6 5 -3 9" fill="none" stroke="#f293b4" stroke-width="4" stroke-linecap="round"/>
+        <path d="M92 26 Q100 2 122 14 Q118 30 106 36 Z" fill="#f7a9c3"/>
+        <ellipse cx="80" cy="66" rx="62" ry="48" fill="url(#glass)"/>
+        <g clip-path="url(#body)">
+          <rect x="10" y="34" width="140" height="104" fill="url(#gold)"/>
+          <path d="M10 36 Q40 28 80 36 T150 34 L150 42 L10 42 Z" fill="#ffe58f" opacity=".9"/>
+          <ellipse cx="50" cy="36" rx="9" ry="3.5" fill="#ffd25a" stroke="#d48a0c" stroke-width="1.2"/>
+          <ellipse cx="78" cy="33" rx="9" ry="3.5" fill="#ffd25a" stroke="#d48a0c" stroke-width="1.2"/>
+          <ellipse cx="106" cy="37" rx="9" ry="3.5" fill="#ffd25a" stroke="#d48a0c" stroke-width="1.2"/>
+        </g>
+        <ellipse cx="80" cy="66" rx="62" ry="48" fill="none" stroke="#ee8fb0" stroke-width="2.5"/>
+        <path d="M34 40 Q48 24 70 22" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".85"/>
+        <rect x="64" y="17" width="30" height="7" rx="3.5" fill="#b9567c"/>
+        <path d="M102 30 Q112 10 130 20 Q124 34 112 38 Z" fill="#f7a9c3" stroke="#ee8fb0" stroke-width="2"/>
+        <ellipse cx="143" cy="66" rx="13" ry="16" fill="url(#snout)" stroke="#ee8fb0" stroke-width="2"/>
+        <ellipse cx="139" cy="62" rx="2.2" ry="3.2" fill="#b9567c"/><ellipse cx="146" cy="62" rx="2.2" ry="3.2" fill="#b9567c"/>
+        <path d="M114 51 Q120 44 126 51" fill="none" stroke="#3a2440" stroke-width="3" stroke-linecap="round"/>
+        <ellipse cx="126" cy="70" rx="8" ry="4.5" fill="#ff7fa6" opacity=".6"/>
+      </svg>
+      <div class="amount"><small>₩</small>9,000</div>
+    </div>
+    <div class="cap">안 쓰고 갓생 다 함</div>
+  </div>
+
+  <!-- 초과 -->
+  <div>
+    <div class="tile">
+      <div class="coins">
+        <div class="coin c-empty"><i class="ti ti-run"></i></div>
+        <div class="coin c-empty"><i class="ti ti-book"></i></div>
+        <div class="coin c-empty"><i class="ti ti-brand-github"></i></div>
+      </div>
+      <svg class="pig" width="164" height="120" viewBox="0 0 164 132">
+        <ellipse cx="80" cy="124" rx="52" ry="5" fill="rgba(90,40,70,.12)"/>
+        <rect x="38" y="96" width="16" height="26" rx="8" fill="#ef9a9a"/>
+        <rect x="104" y="96" width="16" height="26" rx="8" fill="#ef9a9a"/>
+        <path d="M18 62 q-14 -2 -11 -14 q3 -9 11 -4 q6 5 -3 9" fill="none" stroke="#ef9a9a" stroke-width="4" stroke-linecap="round"/>
+        <path d="M92 26 Q100 2 122 14 Q118 30 106 36 Z" fill="#f4a3a3"/>
+        <ellipse cx="80" cy="66" rx="62" ry="48" fill="url(#redglass)"/>
+        <ellipse cx="80" cy="66" rx="62" ry="48" fill="none" stroke="#e57373" stroke-width="2.5"/>
+        <path d="M74 22 L84 46 L70 62 L86 84 L78 100" fill="none" stroke="#c62828" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="M84 46 L96 52" fill="none" stroke="#c62828" stroke-width="2" stroke-linecap="round"/>
+        <rect x="64" y="17" width="30" height="7" rx="3.5" fill="#b23b3b"/>
+        <path d="M102 30 Q112 10 130 20 Q124 34 112 38 Z" fill="#f4a3a3" stroke="#e57373" stroke-width="2"/>
+        <ellipse cx="143" cy="66" rx="13" ry="16" fill="#f8bcbc" stroke="#e57373" stroke-width="2"/>
+        <ellipse cx="139" cy="62" rx="2.2" ry="3.2" fill="#b23b3b"/><ellipse cx="146" cy="62" rx="2.2" ry="3.2" fill="#b23b3b"/>
+        <path d="M115 46 L125 54 M125 46 L115 54" stroke="#3a2440" stroke-width="3" stroke-linecap="round"/>
+        <path d="M124 60 q2 6 0 9" fill="none" stroke="#64b5f6" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <div class="amount neg"><small>−₩</small>3,000</div>
+    </div>
+    <div class="cap">초과</div>
+  </div>
+
+  <!-- 잠금화면 -->
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px">
+    <div class="lock">
+      <i class="ti ti-pig-money" style="font-size:46px"></i>
+      <div>
+        <div class="n">₩4,000</div>
+        <div class="dots">
+          <div class="d"><i class="ti ti-run"></i></div>
+          <div class="d"><i class="ti ti-book"></i></div>
+          <div class="d e"><i class="ti ti-brand-github"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">잠금화면</div>
+  </div>
+
+</div>
+</body></html>

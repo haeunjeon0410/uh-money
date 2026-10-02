@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ring widget fonts</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2/fonts/static/woff2/SUIT.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/static/split/WantedSans.min.css">
+<style>
+  @font-face { font-family:'GmarketSans'; src:url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff') format('woff'); font-weight:700; }
+  @font-face { font-family:'GmarketSans'; src:url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff'); font-weight:500; }
+  body { margin:0; background:#000; color:#fff; min-height:100vh; padding:28px 16px; box-sizing:border-box; font-family: Pretendard, sans-serif; }
+  .font-row { display:flex; gap:22px; flex-wrap:wrap; justify-content:center; align-items:center; margin-bottom:34px; }
+  .label { width:100%; text-align:center; font-size:13px; color:#8e8e93; margin-bottom:12px; }
+  .tile { width:210px; height:210px; border-radius:44px; background:#1c1c1e; position:relative; }
+  .ring { position:absolute; left:50%; top:16px; transform:translateX(-50%); }
+  .center { position:absolute; left:0; right:0; top:16px; height:132px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:27px; letter-spacing:-.5px; font-variant-numeric: tabular-nums; }
+  .center .w { font-size:17px; color:#8e8e93; margin-right:2px; font-weight:500; }
+  .center.neg, .center.neg .w { color:#ff453a; }
+  .center.neg { font-size:22px; }
+  .center.neg .w { font-size:14px; }
+  .chips { position:absolute; left:18px; right:18px; bottom:14px; display:flex; justify-content:space-between; }
+  .chip { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .chip i { font-size:21px; }
+  .chip b { font-size:13px; font-weight:600; color:#fff; font-variant-numeric: tabular-nums; }
+  .chip.off i, .chip.off b { color:#48484a; }
+  .lock { width:170px; height:72px; border-radius:20px; background:#2c2c2e; display:flex; align-items:center; gap:10px; padding:0 12px; box-sizing:border-box; }
+  .lock .n { font-size:22px; font-weight:700; letter-spacing:-.5px; font-variant-numeric: tabular-nums; }
+  .lock .ics { display:flex; gap:8px; font-size:15px; margin-top:2px; }
+  .lock .ics .off { opacity:.35; }
+</style></head>
+<body>
+<div id="root"></div>
+<script>
+const fonts = [
+  ['Pretendard', 'Pretendard'],
+  ['SUIT', 'SUIT'],
+  ['Wanted Sans', 'Wanted Sans'],
+  ['G마켓 산스', 'GmarketSans'],
+];
+const ring = (pct, color, size=132, sw=11) => {
+  const r = (size - sw) / 2, c = 2 * Math.PI * r;
+  return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#2c2c2e" stroke-width="${sw}"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round"
+      stroke-dasharray="${(c*pct).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${size/2} ${size/2})"/></svg>`;
+};
+const chips = (run, book, git) => `<div class="chips">
+  <div class="chip ${run?'':'off'}"><i class="ti ti-run" style="color:#ff9f0a"></i><b>${run?run.toLocaleString():'0'}</b></div>
+  <div class="chip ${book?'':'off'}"><i class="ti ti-book" style="color:#bf5af2"></i><b>${book?book.toLocaleString():'0'}</b></div>
+  <div class="chip ${git?'':'off'}"><i class="ti ti-brand-github" style="color:#0a84ff"></i><b>${git?git.toLocaleString():'0'}</b></div>
+</div>`;
+const tile = (pct, color, num, neg, r, b, g) => `<div class="tile">${ring(pct, color)}
+  <div class="center ${neg?'neg':''}"><span class="w">${neg?'−₩':'₩'}</span>${num}</div>${chips(r,b,g)}</div>`;
+const lock = `<div class="lock">
+  <svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#48484a" stroke-width="6"/>
+  <circle cx="22" cy="22" r="18" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-dasharray="45.2 113.1" transform="rotate(-90 22 22)"/></svg>
+  <div><div class="n">₩4,000</div><div class="ics"><i class="ti ti-run"></i><i class="ti ti-book"></i><i class="ti ti-brand-github off"></i></div></div></div>`;
+document.getElementById('root').innerHTML = fonts.map(([name, fam]) => `
+  <div class="font-row" style="font-family:'${fam}', sans-serif">
+    <div class="label">${name}</div>
+    ${tile(.4, '#30d158', '4,000', false, 3000, 1500, 0)}
+    ${tile(1, '#ff453a', '3,000', true, 0, 0, 700)}
+    ${lock}
+  </div>`).join('');
+</script>
+</body></html>

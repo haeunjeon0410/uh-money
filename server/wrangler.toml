@@ -1,0 +1,18 @@
+name = "uh-money"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+# database_id는 `npx wrangler d1 create uh-money` 실행 결과로 채운다
+[[d1_databases]]
+binding = "DB"
+database_name = "uh-money"
+database_id = "REPLACE_WITH_D1_ID"
+
+[vars]
+# 첫 주(75,000원)가 시작되는 월요일
+FIRST_WEEK = "2026-10-05"
+
+# 비밀값은 .dev.vars(로컬) / `npx wrangler secret put`(배포)으로 넣는다:
+#   COLLECTOR_TOKEN  공기계 수집기용
+#   PHONE_TOKEN      아이폰 위젯·단축어용
+#   OWNER_NAMES      본인 이름 (쉼표로 여러 개). 내 계좌 간 이동을 지출에서 빼는 데 쓴다

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Piggy flat</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800&display=swap">
+<style>
+  body { margin:0; background:#e8e8ed; font-family: Inter, -apple-system, "Apple SD Gothic Neo", sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .row { display:flex; gap:28px; flex-wrap:wrap; justify-content:center; padding:32px; }
+  .cap { text-align:center; margin-top:10px; font-size:12px; color:#6b6b73; }
+  .tile { width:220px; height:220px; border-radius:48px; background:#0b0b0c; position:relative; overflow:hidden; }
+  .tile svg { position:absolute; left:30px; top:22px; }
+  .ic { position:absolute; width:22px; height:22px; margin:-11px 0 0 -11px; display:flex; align-items:center; justify-content:center; font-size:13px; color:#0b0b0c; }
+  .ic.wait { color:#6e6e75; }
+  .num { position:absolute; left:0; right:0; bottom:26px; text-align:center; color:#fff; font-weight:800; font-size:36px; letter-spacing:-1px; font-variant-numeric: tabular-nums; }
+  .num span { font-size:20px; font-weight:700; color:#8e8e93; margin-right:2px; vertical-align:3px; }
+  .num.neg { color:#ff5a5f; }
+  .num.neg span { color:#ff5a5f; }
+  .lock { width:250px; height:96px; border-radius:26px; background:rgba(0,0,0,.55); display:flex; align-items:center; gap:14px; padding:0 18px; box-sizing:border-box; color:#fff; }
+  .lock .n { font-size:30px; font-weight:800; letter-spacing:-1px; font-variant-numeric: tabular-nums; }
+  .lock .dots { display:flex; gap:6px; margin-top:4px; }
+  .lock .d { width:20px; height:20px; border-radius:50%; background:#fff; color:#000; display:flex; align-items:center; justify-content:center; font-size:12px; }
+  .lock .d.e { background:transparent; border:1.5px dashed rgba(255,255,255,.6); color:rgba(255,255,255,.6); box-sizing:border-box; }
+</style></head>
+<body>
+<div class="row" id="row"></div>
+<script>
+const C = { run:'#ff8a3d', book:'#8b7bff', git:'#4da3ff', pink:'#ff7eb0', red:'#ff5a5f' };
+const ICON = { run:'ti-run', book:'ti-book', git:'ti-brand-github' };
+const SLOT_X = 80;
+
+function pig({ level, earned, color, broken }) {
+  // level 0..1 = 오늘 남은 비율, earned = 받은 동전 목록
+  const top = 30, bottom = 110, h = bottom - top;
+  const y = bottom - h * level;
+  const keys = ['run','book','git'];
+  const inside = keys.filter(k => earned.includes(k));
+  const waiting = keys.filter(k => !earned.includes(k));
+  const insidePos = [[56,96],[80,99],[104,96]].slice(0, inside.length);
+  if (inside.length === 1) insidePos[0] = [80,99];
+  if (inside.length === 2) { insidePos[0] = [68,98]; insidePos[1] = [92,98]; }
+  const waitPos = waiting.map((k,i) => [SLOT_X + (i - (waiting.length-1)/2) * 26, 10]);
+  let s = `<svg width="160" height="124" viewBox="0 0 160 124">
+    <defs><clipPath id="b${Math.random().toString(36).slice(2,7)}"></clipPath></defs>`;
+  const id = 'c' + Math.random().toString(36).slice(2,8);
+  s += `<defs><clipPath id="${id}"><ellipse cx="80" cy="70" rx="52" ry="40"/></clipPath></defs>`;
+  s += `<rect x="50" y="98" width="13" height="18" rx="5" fill="${color}"/>`;
+  s += `<rect x="97" y="98" width="13" height="18" rx="5" fill="${color}"/>`;
+  s += `<path d="M30 66 q-10 0 -10 -8 q0 -6 6 -6" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round"/>`;
+  s += `<path d="M98 34 Q104 20 116 22 Q118 32 112 40 Z" fill="${color}" stroke="${color}" stroke-width="4" stroke-linejoin="round"/>`;
+  s += `<ellipse cx="80" cy="70" rx="52" ry="40" fill="#1c1c1f"/>`;
+  if (!broken) s += `<rect x="20" y="${y}" width="120" height="${bottom - y + 10}" fill="${color}" clip-path="url(#${id})"/>`;
+  s += `<ellipse cx="80" cy="70" rx="52" ry="40" fill="none" stroke="${color}" stroke-width="6"/>`;
+  s += `<rect x="66" y="25" width="28" height="9" rx="4.5" fill="#0b0b0c"/>`;
+  s += `<rect x="70" y="28" width="20" height="3" rx="1.5" fill="${color}"/>`;
+  s += `<rect x="128" y="58" width="18" height="24" rx="8" fill="${color}"/>`;
+  s += `<circle cx="134" cy="70" r="2.2" fill="#0b0b0c"/><circle cx="140" cy="70" r="2.2" fill="#0b0b0c"/>`;
+  if (broken) {
+    s += `<path d="M110 54 l8 8 M118 54 l-8 8" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>`;
+    s += `<path d="M78 30 L86 52 L74 68 L88 88 L80 108" fill="none" stroke="${color}" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  } else if (level >= 0.95) {
+    s += `<path d="M108 60 q6 -7 12 0" fill="none" stroke="#0b0b0c" stroke-width="3.5" stroke-linecap="round"/>`;
+  } else {
+    s += `<circle cx="114" cy="58" r="4.5" fill="${y < 62 ? '#0b0b0c' : '#fff'}"/>`;
+  }
+  inside.forEach((k,i) => { const [cx,cy]=insidePos[i]; s += `<circle cx="${cx}" cy="${cy}" r="11" fill="${C[k]}" stroke="#0b0b0c" stroke-width="2.5"/>`; });
+  waitPos.forEach(([cx,cy]) => { s += `<circle cx="${cx}" cy="${cy}" r="11" fill="none" stroke="#48484e" stroke-width="2" stroke-dasharray="3.5 3"/>`; });
+  s += `</svg>`;
+  let icons = '';
+  inside.forEach((k,i) => { const [cx,cy]=insidePos[i]; icons += `<div class="ic" style="left:${30+cx}px;top:${22+cy}px"><i class="ti ${ICON[k]}"></i></div>`; });
+  waiting.forEach((k,i) => { const [cx,cy]=waitPos[i]; icons += `<div class="ic wait" style="left:${30+cx}px;top:${22+cy}px"><i class="ti ${ICON[k]}"></i></div>`; });
+  return s + icons;
+}
+
+const states = [
+  { cap:'평소 · 운동, 공부 함', level:.4, earned:['run','book'], color:C.pink, num:'4,000' },
+  { cap:'안 쓰고 갓생 다 함', level:1, earned:['run','book','git'], color:C.pink, num:'9,000' },
+  { cap:'아직 아무것도 안 함', level:.7, earned:[], color:C.pink, num:'7,000' },
+  { cap:'초과', level:0, earned:[], color:C.red, num:'3,000', neg:true, broken:true },
+];
+const row = document.getElementById('row');
+row.innerHTML = states.map(st => `
+  <div><div class="tile">${pig(st)}
+    <div class="num ${st.neg?'neg':''}"><span>${st.neg?'−₩':'₩'}</span>${st.num}</div>
+  </div><div class="cap">${st.cap}</div></div>`).join('') + `
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px">
+    <div class="lock"><i class="ti ti-pig-money" style="font-size:46px"></i>
+      <div><div class="n">₩4,000</div>
+      <div class="dots"><div class="d"><i class="ti ti-run"></i></div><div class="d"><i class="ti ti-book"></i></div><div class="d e"><i class="ti ti-brand-github"></i></div></div></div>
+    </div><div class="cap">잠금화면</div></div>`;
+</script>
+</body></html>
