@@ -2,11 +2,11 @@ name = "uh-money"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
-# database_id는 `npx wrangler d1 create uh-money` 실행 결과로 채운다
+# `npx wrangler d1 create uh-money`로 만든 DB
 [[d1_databases]]
 binding = "DB"
 database_name = "uh-money"
-database_id = "REPLACE_WITH_D1_ID"
+database_id = "20c1ede5-4791-4c34-94a3-1dadf7245897"
 
 [vars]
 # 첫 주(75,000원)가 시작되는 월요일
