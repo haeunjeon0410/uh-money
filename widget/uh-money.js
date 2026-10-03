@@ -89,12 +89,15 @@ function ringImage(d, size, lineWidth, numberSize) {
   const cx = size / 2;
   const r = (size - lineWidth) / 2;
 
-  arc(dc, cx, r, 0, 1, lineWidth, C.track);
-  if (pct > 0) arc(dc, cx, r, 0, pct, lineWidth, over ? C.red : C.green);
+  circle(dc, cx, r, lineWidth, C.track);
+  if (pct >= 1) circle(dc, cx, r, lineWidth, over ? C.red : C.green);
+  else if (pct > 0) arc(dc, cx, r, 0, pct, lineWidth, over ? C.red : C.green);
 
-  // ₩는 작은 회색, 숫자는 크고 굵게. DrawContext엔 글자 폭 측정이 없어서 글자별 폭을 어림해 가운데 맞춘다
+  // ₩는 작은 회색, 숫자는 크고 굵게. DrawContext엔 글자 폭 측정이 없어서 글자별 폭을 어림하고,
+  // 링 안쪽 폭의 78%를 넘지 않도록 글자 크기를 줄인다 (100,000처럼 긴 금액도 링 안에 들어가게)
   const num = `${over ? "−" : ""}${won(d.remaining)}`;
-  const big = over ? numberSize * 0.85 : numberSize;
+  const units = [...num].reduce((w, ch) => w + (ch === "," ? 0.27 : 0.6), 0) + 0.55 * 0.72 + 0.06;
+  const big = Math.min(numberSize, ((size - lineWidth * 2) * 0.78) / units);
   const small = big * 0.55;
   const numWidth = [...num].reduce((w, ch) => w + (ch === "," ? 0.27 : 0.6) * big, 0);
   const wonWidth = 0.72 * small;
@@ -120,6 +123,13 @@ function ringImage(d, size, lineWidth, numberSize) {
   return dc.getImage();
 }
 
+// 꽉 찬 원은 이음새가 생기지 않게 정원으로 그린다
+function circle(dc, c, r, width, color) {
+  dc.setStrokeColor(color);
+  dc.setLineWidth(width);
+  dc.strokeEllipse(new Rect(c - r, c - r, r * 2, r * 2));
+}
+
 // DrawContext엔 원호가 없어서 짧은 선분으로 그리고, 양 끝에 원을 찍어 둥근 끝을 만든다
 function arc(dc, c, r, from, to, width, color) {
   const steps = Math.max(2, Math.ceil(120 * (to - from)));
@@ -133,10 +143,8 @@ function arc(dc, c, r, from, to, width, color) {
   dc.setStrokeColor(color);
   dc.setLineWidth(width);
   dc.strokePath();
-  if (to - from < 1) {
-    dc.setFillColor(color);
-    for (const p of [pt(from), pt(to)]) dc.fillEllipse(new Rect(p.x - width / 2, p.y - width / 2, width, width));
-  }
+  dc.setFillColor(color);
+  for (const p of [pt(from), pt(to)]) dc.fillEllipse(new Rect(p.x - width / 2, p.y - width / 2, width, width));
 }
 
 function chip(stack, image, amount, color) {
@@ -165,7 +173,7 @@ async function homeWidget(d) {
 
   const top = w.addStack();
   top.addSpacer();
-  const ring = top.addImage(ringImage(d, 104, 11, 24));
+  const ring = top.addImage(ringImage(d, 104, 10, 24));
   ring.imageSize = new Size(104, 104);
   top.addSpacer();
 
