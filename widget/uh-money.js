@@ -104,36 +104,50 @@ const badgeIcon = (key, earned) => slice(ICON[key][0], earned ? 2 : 3);
 
 const won = (n) => Math.abs(n).toLocaleString("ko-KR");
 
-// 링 + 가운데 숫자를 한 장의 이미지로 그린다 (위젯 스택은 겹쳐 그릴 수 없어서)
-const BADGE_H = 18;
+// 위젯 전체를 한 장의 그림으로 그려 배경에 넣는다. 위젯의 자동 배치(스택)는 가운데 정렬이 어긋나서,
+// 모든 위치를 좌표로 직접 정한다. 작은 위젯이 정사각형이라 S×S 그림을 그대로 채운다.
+const S = 160;
+const G = {
+  ringCy: 56, ringD: 92, ringLw: 10, // 링: 가운데 위쪽
+  badgeY: 108, badgeSize: 12, badgeGap: 8, // 업적 배지 줄
+  iconY: 128, iconSize: 17, // 보상 아이콘 줄
+  barY: 148, barW: 16, barH: 3, // 아이콘 아래 진행 막대
+  sideMargin: 20, // 보상 줄 좌우 여백 (넓히면 아이콘이 가운데로 모인다)
+};
 
-function ringImage(d, size, lineWidth, numberSize) {
+const BADGES = ["noSpend", "keptLimit", "noDelivery", "onTime"];
+const REWARDS = [
+  ["exercise", C.run], ["study", C.book], ["commit", C.git], ["malhae", C.malhae], ["psat", C.psat],
+];
+
+function homeImage(d) {
   const dc = new DrawContext();
-  dc.size = new Size(size, size + BADGE_H);
-  dc.opaque = false;
+  dc.size = new Size(S, S);
+  dc.opaque = true;
   dc.respectScreenScale = true;
+  dc.setFillColor(C.bg);
+  dc.fillRect(new Rect(0, 0, S, S));
 
+  const cx = S / 2;
+  const cy = G.ringCy;
+  const r = (G.ringD - G.ringLw) / 2;
   const over = d.remaining < 0;
   const pct = over ? 1 : d.allowance > 0 ? Math.max(0, Math.min(1, d.remaining / d.allowance)) : 0;
-  const cx = size / 2;
-  const r = (size - lineWidth) / 2;
 
-  circle(dc, cx, r, lineWidth, C.track);
-  if (pct >= 1) circle(dc, cx, r, lineWidth, over ? C.red : C.green);
-  else if (pct > 0) arc(dc, cx, r, 0, pct, lineWidth, over ? C.red : C.green);
+  circle(dc, cx, cy, r, G.ringLw, C.track);
+  if (pct >= 1) circle(dc, cx, cy, r, G.ringLw, over ? C.red : C.green);
+  else if (pct > 0) arc(dc, cx, cy, r, 0, pct, G.ringLw, over ? C.red : C.green);
 
-  // ₩는 작은 회색, 숫자는 크고 굵게. DrawContext엔 글자 폭 측정이 없어서 글자별 폭을 어림하고,
-  // 링 안쪽 폭의 78%를 넘지 않도록 글자 크기를 줄인다 (100,000처럼 긴 금액도 링 안에 들어가게)
+  // ₩는 작은 회색, 숫자는 크고 굵게. 글자 폭 측정이 없어서 글자별 폭을 어림하고, 링 안쪽 폭에 맞게 글자 크기를 줄인다
   const num = `${over ? "−" : ""}${won(d.remaining)}`;
   const units = [...num].reduce((w, ch) => w + (ch === "," ? 0.27 : 0.6), 0) + 0.55 * 0.72 + 0.06;
-  const big = Math.min(numberSize, ((size - lineWidth * 2) * 0.78) / units);
+  const big = Math.min(23, ((G.ringD - G.ringLw * 2) * 0.82) / units);
   const small = big * 0.55;
   const numWidth = [...num].reduce((w, ch) => w + (ch === "," ? 0.27 : 0.6) * big, 0);
   const wonWidth = 0.72 * small;
   const gap = big * 0.06;
   let x = cx - (wonWidth + gap + numWidth) / 2;
-  const top = cx - big * 0.62;
-
+  const top = cy - big * 0.62;
   dc.setTextAlignedLeft();
   dc.setFont(font(small, "SemiBold"));
   dc.setTextColor(over ? C.red : C.gray);
@@ -147,40 +161,59 @@ function ringImage(d, size, lineWidth, numberSize) {
     dc.setTextAlignedCenter();
     dc.setFont(font(9, "SemiBold"));
     dc.setTextColor(C.warn);
-    dc.drawTextInRect(d.offline ? "⚠︎ 오프라인" : "⚠︎ 수집 끊김", new Rect(lineWidth, top - 13, size - lineWidth * 2, 12));
+    dc.drawTextInRect(d.offline ? "⚠︎ 오프라인" : "⚠︎ 수집 끊김", new Rect(0, top - 13, S, 12));
   }
-  drawBadges(dc, d.achievementsToday, size);
+
+  // 업적 배지: 달성은 초록, 지키는 중은 회색, 깨졌거나 해당 없으면 숨기고 남은 것만 가운데로 모은다
+  const st = d.achievementsToday;
+  const shown = BADGES.filter((k) => st?.[k] === "earned" || st?.[k] === "ongoing");
+  let bx = cx - (shown.length * G.badgeSize + (shown.length - 1) * G.badgeGap) / 2;
+  for (const key of shown) {
+    dc.drawImageInRect(badgeIcon(key, st[key] === "earned"), new Rect(bx, G.badgeY, G.badgeSize, G.badgeSize));
+    bx += G.badgeSize + G.badgeGap;
+  }
+
+  if (d.settlement) {
+    // 정산이 필요하면 보상 줄 대신 채우기/빼기 안내를 보여준다
+    const fill = d.settlement.action === "FILL";
+    const label = `₩${won(d.settlement.amount)} ${fill ? "채우기" : "빼기"}`;
+    const pw = 108;
+    const pill = new Path();
+    pill.addRoundedRect(new Rect(cx - pw / 2, G.iconY, pw, 24), 12, 12);
+    dc.addPath(pill);
+    dc.setFillColor(fill ? C.green : C.warn);
+    dc.fillPath();
+    dc.setTextAlignedCenter();
+    dc.setFont(font(12));
+    dc.setTextColor(Color.black());
+    dc.drawTextInRect(label, new Rect(cx - pw / 2, G.iconY + 4, pw, 18));
+  } else {
+    // 매일 보상: 아이콘 + 아래 짧은 막대(오늘 받은 금액 / 그 항목 상한). 다섯 칸을 같은 간격으로 가운데에 둔다
+    const colW = (S - G.sideMargin * 2) / REWARDS.length;
+    REWARDS.forEach(([key, color], i) => {
+      const reward = d.rewardsToday[key];
+      const p = reward.max > 0 ? Math.min(1, reward.amount / reward.max) : 0;
+      const mid = G.sideMargin + colW * (i + 0.5);
+      dc.drawImageInRect(rewardIcon(key, p > 0), new Rect(mid - G.iconSize / 2, G.iconY, G.iconSize, G.iconSize));
+      bar(dc, mid - G.barW / 2, G.barY, p, color);
+    });
+  }
   return dc.getImage();
 }
 
-// 업적 배지: 달성(earned)은 초록, 지키는 중(ongoing)은 회색, 깨졌거나 해당 없으면 숨긴다. 링 이미지 아래에 가운데로 그린다
-const BADGES = ["noSpend", "keptLimit", "noDelivery", "onTime"];
-
-function drawBadges(dc, states, size) {
-  const shown = BADGES.filter((k) => states?.[k] === "earned" || states?.[k] === "ongoing");
-  if (shown.length === 0) return;
-  const s = 13;
-  const gap = 7;
-  let x = (size - (shown.length * s + (shown.length - 1) * gap)) / 2;
-  for (const key of shown) {
-    dc.drawImageInRect(badgeIcon(key, states[key] === "earned"), new Rect(x, size + 3, s, s));
-    x += s + gap;
-  }
-}
-
 // 꽉 찬 원은 이음새가 생기지 않게 정원으로 그린다
-function circle(dc, c, r, width, color) {
+function circle(dc, cx, cy, r, width, color) {
   dc.setStrokeColor(color);
   dc.setLineWidth(width);
-  dc.strokeEllipse(new Rect(c - r, c - r, r * 2, r * 2));
+  dc.strokeEllipse(new Rect(cx - r, cy - r, r * 2, r * 2));
 }
 
 // DrawContext엔 원호가 없어서 짧은 선분으로 그리고, 양 끝에 원을 찍어 둥근 끝을 만든다
-function arc(dc, c, r, from, to, width, color) {
+function arc(dc, cx, cy, r, from, to, width, color) {
   const steps = Math.max(2, Math.ceil(120 * (to - from)));
   const pt = (t) => {
     const a = -Math.PI / 2 + 2 * Math.PI * t;
-    return new Point(c + r * Math.cos(a), c + r * Math.sin(a));
+    return new Point(cx + r * Math.cos(a), cy + r * Math.sin(a));
   };
   const path = new Path();
   path.addLines(Array.from({ length: steps + 1 }, (_, i) => pt(from + ((to - from) * i) / steps)));
@@ -192,80 +225,27 @@ function arc(dc, c, r, from, to, width, color) {
   for (const p of [pt(from), pt(to)]) dc.fillEllipse(new Rect(p.x - width / 2, p.y - width / 2, width, width));
 }
 
-// 매일 보상 한 칸: 아이콘 + 아래 짧은 막대 (오늘 받은 금액 / 그 항목 상한)
-function chip(stack, key, reward, color) {
-  const pct = reward.max > 0 ? Math.min(1, reward.amount / reward.max) : 0;
-  const s = stack.addStack();
-  s.layoutVertically();
-  const iconRow = s.addStack();
-  iconRow.addSpacer();
-  iconRow.addImage(rewardIcon(key, pct > 0)).imageSize = new Size(18, 18);
-  iconRow.addSpacer();
-  s.addSpacer(4);
-  const barRow = s.addStack();
-  barRow.addSpacer();
-  barRow.addImage(barImage(pct, color)).imageSize = new Size(16, 3);
-  barRow.addSpacer();
-}
-
-function barImage(pct, color) {
-  const dc = new DrawContext();
-  dc.size = new Size(16, 3);
-  dc.opaque = false;
-  dc.respectScreenScale = true;
+function bar(dc, x, y, pct, color) {
   const track = new Path();
-  track.addRoundedRect(new Rect(0, 0, 16, 3), 1.5, 1.5);
+  track.addRoundedRect(new Rect(x, y, G.barW, G.barH), 1.5, 1.5);
   dc.addPath(track);
   dc.setFillColor(C.track);
   dc.fillPath();
   if (pct > 0) {
     const fill = new Path();
-    fill.addRoundedRect(new Rect(0, 0, Math.max(3, 16 * pct), 3), 1.5, 1.5);
+    fill.addRoundedRect(new Rect(x, y, Math.max(G.barH, G.barW * pct), G.barH), 1.5, 1.5);
     dc.addPath(fill);
     dc.setFillColor(color);
     dc.fillPath();
   }
-  return dc.getImage();
 }
 
 async function homeWidget(d) {
   const w = new ListWidget();
   w.backgroundColor = C.bg;
-  w.setPadding(12, 10, 10, 10);
-
-  // 링과 배지는 한 장의 이미지이고, centerAlignImage로 위젯 가운데에 둔다
-  const ring = w.addImage(ringImage(d, 90, 9, 22));
-  ring.imageSize = new Size(90, 90 + BADGE_H);
-  ring.centerAlignImage();
-  w.addSpacer(5);
-
-  // 위젯을 누르면 이 스크립트를 앱에서 실행해 주간 모아보기를 연다
-  w.url = `scriptable:///run/${encodeURIComponent(Script.name())}`;
-
-  // 정산이 필요하면 보상 줄 대신 채우기/빼기 안내를 보여주고, 위젯을 누르면 토스 송금 화면을 연다
-  if (d.settlement) {
-    if (d.settlement.url) w.url = d.settlement.url;
-    const row = w.addStack();
-    row.addSpacer();
-    const pill = row.addStack();
-    pill.backgroundColor = d.settlement.action === "FILL" ? C.green : C.warn;
-    pill.cornerRadius = 10;
-    pill.setPadding(5, 10, 5, 10);
-    const t = pill.addText(`₩${won(d.settlement.amount)} ${d.settlement.action === "FILL" ? "채우기" : "빼기"}`);
-    t.font = font(12);
-    t.textColor = Color.black();
-    row.addSpacer();
-    return w;
-  }
-
-  const chips = w.addStack();
-  chips.setPadding(0, 6, 0, 6);
-  const r = d.rewardsToday;
-  chip(chips, "exercise", r.exercise, C.run);
-  chip(chips, "study", r.study, C.book);
-  chip(chips, "commit", r.commit, C.git);
-  chip(chips, "malhae", r.malhae, C.malhae);
-  chip(chips, "psat", r.psat, C.psat);
+  w.backgroundImage = homeImage(d);
+  // 위젯을 누르면 이 스크립트를 앱에서 실행해 주간 모아보기를 열고, 정산이 필요하면 토스 송금 화면을 연다
+  w.url = d.settlement?.url ?? `scriptable:///run/${encodeURIComponent(Script.name())}`;
   return w;
 }
 

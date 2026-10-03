@@ -1,19 +1,23 @@
-<!doctype html><html><body style="margin:0;background:#000;padding:30px;color:#fff;font-family:sans-serif">
-<div id="w" style="position:relative;width:320px;height:320px;border-radius:68px;background:#1c1c1e"></div>
+<!doctype html><html><body style="margin:0;background:#000;padding:24px;display:flex;gap:30px;color:#8e8e93;font:13px sans-serif">
+<div id="a"></div><div id="b"></div>
 <script>
-// widget/uh-money.js와 같은 배치 계산: 링+배지 이미지는 위젯 가운데, 보상 칸은 균등 분배. 아이콘은 스프라이트를 칸 단위로 잘라 쓴다.
-const CELL=96, K=2; // K = 화면 배율(미리보기용)
+const S=160, G={"ringCy": 56.0, "ringD": 92.0, "ringLw": 10.0, "badgeY": 108.0, "badgeSize": 12.0, "badgeGap": 8.0, "iconY": 128.0, "iconSize": 17.0, "barY": 148.0, "barW": 16.0, "barH": 3.0, "sideMargin": 20.0}, K=2.2;
 const COL={exercise:0,study:1,commit:2,malhae:3,psat:4,noSpend:0,keptLimit:1,noDelivery:2,onTime:3};
-const icon=(key,row,x,y,s)=>`<div style="position:absolute;left:${x*K}px;top:${y*K}px;width:${s*K}px;height:${s*K}px;background:url(../widget/assets/icons-v1.png) -${COL[key]*s*K}px -${row*s*K}px/${5*s*K}px ${4*s*K}px no-repeat"></div>`;
-const W=160,size=90,x0=(W-size)/2,cy=12+size/2;
-let h=`<svg style="position:absolute;left:0;top:0" width="${W*K}" height="${W*K}"><g transform="scale(${K})">
-<circle cx="${x0+size/2}" cy="${cy}" r="${(size-9)/2}" fill="none" stroke="#2c2c2e" stroke-width="9"/>
-<circle cx="${x0+size/2}" cy="${cy}" r="${(size-9)/2}" fill="none" stroke="#30d158" stroke-width="9" stroke-linecap="round" stroke-dasharray="${2*Math.PI*(size-9)/2*.6} 999" transform="rotate(-90 ${x0+size/2} ${cy})"/>
-<text x="${W/2}" y="${cy+7}" text-anchor="middle" fill="#fff" font-size="20" font-weight="700">37,500</text>
-<line x1="${W/2}" y1="0" x2="${W/2}" y2="${W}" stroke="#ff453a" stroke-width=".4" stroke-dasharray="2 2"/></g></svg>`;
-const shown=["noSpend","keptLimit","noDelivery"],s=13,g=7; let x=x0+(size-(shown.length*s+(shown.length-1)*g))/2;
-for(const k of shown){h+=icon(k,3,x,12+size+3,s);x+=s+g;}
-const keys=["exercise","study","commit","malhae","psat"],on=[1,.4,0,0,1],cw=(W-12-20)/5;
-keys.forEach((k,i)=>h+=icon(k,on[i]?0:1,16+cw*i+(cw-18)/2,12+size+18+4,18));
-document.getElementById("w").innerHTML=h;
+const icon=(key,row,x,y,w)=>`<div style="position:absolute;left:${x*K}px;top:${y*K}px;width:${w*K}px;height:${w*K}px;background:url(../widget/assets/icons-v1.png) -${COL[key]*w*K}px -${row*w*K}px/${5*w*K}px ${4*w*K}px no-repeat"></div>`;
+const bar=(x,y,p,c)=>`<div style="position:absolute;left:${x*K}px;top:${y*K}px;width:${G.barW*K}px;height:${G.barH*K}px;border-radius:3px;background:#2c2c2e;overflow:hidden"><div style="width:${p*100}%;height:100%;background:${c}"></div></div>`;
+function widget(o){
+  const cx=S/2,cy=G.ringCy,r=(G.ringD-G.ringLw)/2;
+  let h=`<svg style="position:absolute;left:0;top:0" width="${S*K}" height="${S*K}"><g transform="scale(${K})">
+   <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#2c2c2e" stroke-width="${G.ringLw}"/>
+   <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${o.over?'#ff453a':'#30d158'}" stroke-width="${G.ringLw}" stroke-linecap="round" stroke-dasharray="${2*Math.PI*r*o.pct} 999" transform="rotate(-90 ${cx} ${cy})"/>
+   <text x="${cx}" y="${cy+7}" text-anchor="middle" fill="${o.over?'#ff453a':'#fff'}" font-size="${o.fs}" font-weight="700">${o.num}</text>
+   <line x1="${cx}" y1="0" x2="${cx}" y2="${S}" stroke="#ff453a" stroke-width=".3" stroke-dasharray="2 2"/></g></svg>`;
+  let bx=cx-(o.badges.length*G.badgeSize+(o.badges.length-1)*G.badgeGap)/2;
+  for(const k of o.badges){h+=icon(k,3,bx,G.badgeY,G.badgeSize);bx+=G.badgeSize+G.badgeGap;}
+  const keys=['exercise','study','commit','malhae','psat'],cols=['#ff9f0a','#bf5af2','#0a84ff','#64d2ff','#ffd60a'],colW=(S-G.sideMargin*2)/5;
+  keys.forEach((k,i)=>{const mid=G.sideMargin+colW*(i+.5),p=o.p[i];h+=icon(k,p>0?0:1,mid-G.iconSize/2,G.iconY,G.iconSize)+bar(mid-G.barW/2,G.barY,p,cols[i]);});
+  return `<div style="position:relative;width:${S*K}px;height:${S*K}px;border-radius:${36*K}px;background:#1c1c1e;overflow:hidden">${h}</div>`;
+}
+a.innerHTML=widget({pct:.6,over:false,num:'37,500',fs:17,badges:['noSpend','keptLimit','noDelivery'],p:[1,.4,0,0,1]});
+b.innerHTML=widget({pct:1,over:true,num:'−3,000',fs:15,badges:[],p:[0,0,0,0,0]});
 </script></body></html>
