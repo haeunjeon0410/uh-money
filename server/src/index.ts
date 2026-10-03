@@ -38,11 +38,21 @@ export async function handle(req: Request, env: Env, now = new Date()): Promise<
       return json(await widget(env, now));
     case "GET /summary":
       return json(await summary(env, now));
+    // 아이폰 단축어 자동화: 공부 집중 모드 켜기/끄기, 말해보카 열기/닫기, 학교 도착
     case "POST /study/start":
-      await store.startStudy(env.DB, now);
+      await store.startSession(env.DB, "STUDY", now);
       return json({ ok: true });
     case "POST /study/stop":
-      await store.stopStudy(env.DB, now);
+      await store.stopSession(env.DB, "STUDY", now);
+      return json({ ok: true });
+    case "POST /malhae/start":
+      await store.startSession(env.DB, "MALHAE", now);
+      return json({ ok: true });
+    case "POST /malhae/stop":
+      await store.stopSession(env.DB, "MALHAE", now);
+      return json({ ok: true });
+    case "POST /arrive/school":
+      await store.insertArrival(env.DB, now);
       return json({ ok: true });
     case "POST /sync/github": // 1시간 주기를 기다리지 않고 바로 확인할 때
       return json(await syncCommits(env, now));

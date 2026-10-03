@@ -70,10 +70,13 @@ describe("공부 → 보상 → 다음 주 예산", () => {
     await call("POST", "/study/stop", kst("2026-10-06T16:05:00"), "p-token");
 
     const w = await call("GET", "/widget", kst("2026-10-06T17:00:00"), "p-token");
-    expect(w.body.rewardsToday).toEqual({ exercise: 0, study: 2_000, commit: 0 });
+    expect(w.body.rewardsToday.study).toEqual({ amount: 2_000, max: 5_000 });
+    expect(w.body.rewardsToday.exercise.amount).toBe(0);
 
+    // 다음 주 예산 = 35,000 + 공부 2,000 + 화요일 이후 아무것도 안 쓴 날들의 돈 업적
+    // (화~일 6일 × 무지출 3,000 + 한도 500 + 배달 안 함 500 = 24,000, 월요일은 지출 없음이라 4,000 추가)
     const next = await call("GET", "/summary", kst("2026-10-12T09:00:00"), "p-token");
-    expect(next.body.budget).toBe(37_000);
+    expect(next.body.budget).toBe(35_000 + 2_000 + 7 * 4_000);
   });
 });
 
@@ -96,5 +99,17 @@ describe("위젯 정산 안내", () => {
     await notify("2026-10-05T09:00:00", "입금 23,920원\n홍길동 | 입출금통장(1234)\n잔액 74,000원");
     w = await call("GET", "/widget", kst("2026-10-05T09:05:00"), "p-token");
     expect(w.body.settlement).toBeNull();
+  });
+});
+
+describe("말해보카·학교 도착", () => {
+  it("말해보카 10분 넘게 켜면 오늘 500원, 시간표보다 일찍 도착하면 출석 업적", async () => {
+    env.SCHOOL_TIMETABLE = "mon=09:00";
+    await call("POST", "/malhae/start", kst("2026-10-05T07:30:00"), "p-token");
+    await call("POST", "/malhae/stop", kst("2026-10-05T07:45:00"), "p-token");
+    await call("POST", "/arrive/school", kst("2026-10-05T08:50:00"), "p-token");
+    const w = await call("GET", "/widget", kst("2026-10-05T12:00:00"), "p-token");
+    expect(w.body.rewardsToday.malhae.amount).toBe(500);
+    expect(w.body.achievementsToday).toEqual({ noSpend: "ongoing", keptLimit: "ongoing", noDelivery: "ongoing", onTime: "earned" });
   });
 });

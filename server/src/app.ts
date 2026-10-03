@@ -1,6 +1,7 @@
 import { parseKbank } from "./ingest/kbank";
 import { classify, checkGap } from "./ingest/classify";
-import { rewardFor, studyMinutesByDay, type DayReward } from "./engine/rewards";
+import { rewardFor, sessionMinutesByDay, weekRewardTotal, type DayReward } from "./engine/rewards";
+import { moneyAchievements, onTime, parseTimetable, isDelivery } from "./engine/achievements";
 import { todayView, weekBudget, spentInWeek, weekSavings, settlementTransfer } from "./engine/budget";
 import { dayKey, weekKey, addDays, dayStart } from "./engine/time";
 import { RULES } from "./engine/rules";
@@ -50,33 +51,53 @@ function ownerNames(env: Env): string[] {
 
 // --- 보상 ---
 
-async function dailyRewards(env: Env, fromDay: string, toDay: string, now: Date): Promise<Map<string, DayReward>> {
+// fromDay~toDay(같은 주) 하루하루의 매일 보상과 업적. 돈 업적은 하루가 끝난 날만 확정한다
+async function dayRewards(env: Env, week: string, fromDay: string, toDay: string, now: Date): Promise<Map<string, DayReward>> {
   const since = dayStart(fromDay);
-  const [exercise, sessions, commits] = await Promise.all([
+  const [budget, txs, exercise, study, malhae, commits, psat, arrivals] = await Promise.all([
+    budgetFor(env, week, now),
+    store.ledgerSince(env.DB, dayStart(week)),
     store.exerciseDaysSince(env.DB, fromDay),
-    store.studySessionsSince(env.DB, since),
+    store.sessionsSince(env.DB, "STUDY", since),
+    store.sessionsSince(env.DB, "MALHAE", since),
     store.commitTimesSince(env.DB, since),
+    store.psatDaysSince(env.DB, fromDay),
+    store.arrivalsSince(env.DB, since),
   ]);
-  const study = studyMinutesByDay(sessions, now);
+  const studyMin = sessionMinutesByDay(study, now, RULES.studyMinSessionMinutes);
+  const malhaeMin = sessionMinutesByDay(malhae, now, 1);
   const commitsByDay = new Map<string, number>();
   for (const t of commits) commitsByDay.set(dayKey(t), (commitsByDay.get(dayKey(t)) ?? 0) + 1);
+  const timetable = parseTimetable(env.SCHOOL_TIMETABLE);
+  const today = dayKey(now);
 
   const out = new Map<string, DayReward>();
   for (let d = fromDay; d <= toDay; d = addDays(d, 1)) {
-    out.set(d, rewardFor({ exercised: exercise.has(d), studyMinutes: study.get(d) ?? 0, commits: commitsByDay.get(d) ?? 0 }));
+    const money = d < today ? moneyAchievements(d, budget, txs) : { noSpend: false, keptLimit: false, noDelivery: false };
+    out.set(
+      d,
+      rewardFor(
+        {
+          exercised: exercise.has(d),
+          studyMinutes: studyMin.get(d) ?? 0,
+          commits: commitsByDay.get(d) ?? 0,
+          malhaeMinutes: malhaeMin.get(d) ?? 0,
+          psat: psat.has(d),
+        },
+        { ...money, onTime: onTime(d, arrivals, timetable) },
+      ),
+    );
   }
   return out;
 }
 
 async function weekRewards(env: Env, week: string, now: Date): Promise<number> {
-  const days = await dailyRewards(env, week, addDays(week, 6), now);
-  let sum = 0;
-  for (const r of days.values()) sum += r.total;
-  return sum;
+  const days = await dayRewards(env, week, week, addDays(week, 6), now);
+  return weekRewardTotal([...days.values()]);
 }
 
 // 지난주 보상을 확정한다. 처음 물어볼 때 한 번 계산해 저장하고, 그 뒤엔 저장된 값을 쓴다.
-// 정산 뒤 늦게 들어온 보상(예: 일요일 커밋을 월요일에 푸시)은 다음 확정 때 더해준다.
+// 정산 뒤 늦게 들어온 보상(예: 일요일 커밋을 월요일에 푸시)은 다음 확정 때 더하되, 주간 상한은 넘지 않는다.
 async function frozenRewards(env: Env, week: string, now: Date): Promise<number> {
   const existing = await store.getFreeze(env.DB, week);
   if (existing) return existing.amount;
@@ -86,8 +107,9 @@ async function frozenRewards(env: Env, week: string, now: Date): Promise<number>
   const before = addDays(week, -7);
   const prevFreeze = await store.getFreeze(env.DB, before);
   if (prevFreeze) late = Math.max(0, (await weekRewards(env, before, now)) - prevFreeze.earned_at_freeze);
-  await store.putFreeze(env.DB, week, earned + late, earned, now);
-  return earned + late;
+  const amount = Math.min(earned + late, RULES.weeklyRewardMax);
+  await store.putFreeze(env.DB, week, amount, earned, now);
+  return amount;
 }
 
 export async function budgetFor(env: Env, week: string, now: Date): Promise<number> {
@@ -103,19 +125,36 @@ export async function widget(env: Env, now: Date) {
   const [budget, txs, rewards, seen, balance] = await Promise.all([
     budgetFor(env, week, now),
     store.ledgerSince(env.DB, dayStart(week)),
-    dailyRewards(env, today, today, now),
+    dayRewards(env, week, today, today, now),
     store.lastSeen(env.DB),
     store.latestBalance(env.DB),
   ]);
   const view = todayView(now, budget, txs);
   const r = rewards.get(today)!;
   const left = budget - spentInWeek(txs, week);
+
+  // 돈 업적은 하루가 끝나야 확정되니 오늘은 "아직 지키는 중(ongoing)"인지 "이미 깨짐(failed)"인지만 보여준다
+  const todaySpends = txs.filter((t) => t.effect === "SPEND" && dayKey(t.at) === today);
+  const state = (holding: boolean) => (holding ? "ongoing" : "failed");
   return {
     week,
     remaining: view.remaining,
     allowance: view.allowance,
     spentToday: view.spentToday,
-    rewardsToday: { exercise: r.exercise, study: r.study, commit: r.commit },
+    // 매일 보상: 위젯 아이콘 아래 막대 = amount / max
+    rewardsToday: {
+      exercise: { amount: r.exercise, max: RULES.exercise },
+      study: { amount: r.study, max: RULES.studyMax },
+      commit: { amount: r.commit, max: RULES.commitMax },
+      malhae: { amount: r.malhae, max: RULES.malhae },
+      psat: { amount: r.psat, max: RULES.psat },
+    },
+    achievementsToday: {
+      noSpend: state(todaySpends.length === 0),
+      keptLimit: state(view.remaining >= 0),
+      noDelivery: state(!todaySpends.some((t) => isDelivery(t.counterparty ?? ""))),
+      onTime: r.achievements.onTime > 0 ? "earned" : "none",
+    },
     stale: !seen || now.getTime() - seen.getTime() > STALE_AFTER_MS,
     // 케이뱅크 잔액이 이번 주에 쓸 돈과 다르면 채우기/빼기 안내 (위젯이 알림과 토스 링크로 띄운다)
     settlement: settlementFor(left, balance, { kbank: env.KBANK_ACCOUNT, salary: env.SALARY_ACCOUNT }),

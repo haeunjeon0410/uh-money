@@ -12,6 +12,7 @@ export interface Env {
   SALARY_ACCOUNT?: string; // "은행:계좌번호" 형식의 월급통장 (넘친 돈 빼기 토스 링크용)
   GITHUB_TOKEN?: string; // 비공개 저장소 커밋까지 읽는 읽기 전용 토큰
   GITHUB_USER: string;
+  SCHOOL_TIMETABLE?: string; // "mon=09:00,tue=10:30" 요일별 첫 수업 시작 (학교 출석 업적)
 }
 
 export interface RawInput {
@@ -67,10 +68,10 @@ export async function latestBalance(db: D1Database): Promise<number | null> {
 
 export async function ledgerSince(db: D1Database, since: Date): Promise<LedgerTx[]> {
   const { results } = await db
-    .prepare(`SELECT occurred_at, amount, effect FROM transactions WHERE occurred_at >= ?`)
+    .prepare(`SELECT occurred_at, amount, effect, counterparty FROM transactions WHERE occurred_at >= ?`)
     .bind(since.toISOString())
-    .all<{ occurred_at: string; amount: number; effect: Effect }>();
-  return results.map((r) => ({ at: new Date(r.occurred_at), amount: r.amount, effect: r.effect }));
+    .all<{ occurred_at: string; amount: number; effect: Effect; counterparty: string }>();
+  return results.map((r) => ({ at: new Date(r.occurred_at), amount: r.amount, effect: r.effect, counterparty: r.counterparty }));
 }
 
 export async function unknownCount(db: D1Database): Promise<number> {
@@ -80,24 +81,46 @@ export async function unknownCount(db: D1Database): Promise<number> {
   return row?.n ?? 0;
 }
 
-// --- 공부 집중 모드 ---
+// --- 켜고 끄는 세션: 공부 집중 모드(STUDY), 말해보카(MALHAE) ---
 
-export async function startStudy(db: D1Database, now: Date): Promise<void> {
-  const open = await db.prepare(`SELECT id FROM study_sessions WHERE end_at IS NULL LIMIT 1`).first();
+export type SessionKind = "STUDY" | "MALHAE";
+
+export async function startSession(db: D1Database, kind: SessionKind, now: Date): Promise<void> {
+  const open = await db.prepare(`SELECT id FROM study_sessions WHERE end_at IS NULL AND kind = ? LIMIT 1`).bind(kind).first();
   if (open) return; // 이미 켜져 있으면 무시 (단축어가 두 번 불려도 안전)
-  await db.prepare(`INSERT INTO study_sessions (start_at) VALUES (?)`).bind(now.toISOString()).run();
+  await db.prepare(`INSERT INTO study_sessions (start_at, kind) VALUES (?, ?)`).bind(now.toISOString(), kind).run();
 }
 
-export async function stopStudy(db: D1Database, now: Date): Promise<void> {
-  await db.prepare(`UPDATE study_sessions SET end_at = ? WHERE end_at IS NULL`).bind(now.toISOString()).run();
+export async function stopSession(db: D1Database, kind: SessionKind, now: Date): Promise<void> {
+  await db.prepare(`UPDATE study_sessions SET end_at = ? WHERE end_at IS NULL AND kind = ?`).bind(now.toISOString(), kind).run();
 }
 
-export async function studySessionsSince(db: D1Database, since: Date) {
+export async function sessionsSince(db: D1Database, kind: SessionKind, since: Date) {
   const { results } = await db
-    .prepare(`SELECT start_at, end_at FROM study_sessions WHERE start_at >= ?`)
-    .bind(since.toISOString())
+    .prepare(`SELECT start_at, end_at FROM study_sessions WHERE start_at >= ? AND kind = ?`)
+    .bind(since.toISOString(), kind)
     .all<{ start_at: string; end_at: string | null }>();
   return results.map((r) => ({ start: new Date(r.start_at), end: r.end_at ? new Date(r.end_at) : null }));
+}
+
+// --- 피셋(my-dr), 학교 도착 ---
+
+export async function putPsatDays(db: D1Database, days: string[]): Promise<void> {
+  for (const day of days) await db.prepare(`INSERT INTO psat_days (day) VALUES (?) ON CONFLICT(day) DO NOTHING`).bind(day).run();
+}
+
+export async function psatDaysSince(db: D1Database, sinceDay: string): Promise<Set<string>> {
+  const { results } = await db.prepare(`SELECT day FROM psat_days WHERE day >= ?`).bind(sinceDay).all<{ day: string }>();
+  return new Set(results.map((r) => r.day));
+}
+
+export async function insertArrival(db: D1Database, at: Date): Promise<void> {
+  await db.prepare(`INSERT INTO arrivals (at) VALUES (?)`).bind(at.toISOString()).run();
+}
+
+export async function arrivalsSince(db: D1Database, since: Date): Promise<Date[]> {
+  const { results } = await db.prepare(`SELECT at FROM arrivals WHERE at >= ?`).bind(since.toISOString()).all<{ at: string }>();
+  return results.map((r) => new Date(r.at));
 }
 
 // --- 운동, 커밋 (4단계에서 다짱/GitHub 동기화가 채운다) ---

@@ -16,6 +16,9 @@ const C = {
   run: new Color("#ff9f0a"),
   book: new Color("#bf5af2"),
   git: new Color("#0a84ff"),
+  malhae: new Color("#64d2ff"),
+  psat: new Color("#ffd60a"),
+  badge: new Color("#30d158"),
   warn: new Color("#ff9f0a"),
 };
 
@@ -116,11 +119,36 @@ function ringImage(d, size, lineWidth, numberSize) {
 
   if (d.stale || d.offline) {
     dc.setTextAlignedCenter();
-    dc.setFont(font(big * 0.42, "SemiBold"));
+    dc.setFont(font(9, "SemiBold"));
     dc.setTextColor(C.warn);
-    dc.drawTextInRect(d.offline ? "⚠︎ 오프라인" : "⚠︎ 수집 끊김", new Rect(lineWidth, cx + big * 0.7, size - lineWidth * 2, big));
+    dc.drawTextInRect(d.offline ? "⚠︎ 오프라인" : "⚠︎ 수집 끊김", new Rect(lineWidth, top - 13, size - lineWidth * 2, 12));
   }
   return dc.getImage();
+}
+
+// 업적 배지: 달성(earned)은 초록, 지키는 중(ongoing)은 회색, 깨졌거나 해당 없으면 숨긴다
+const BADGES = [
+  ["noSpend", "wonsign.circle.fill"],
+  ["keptLimit", "checkmark.shield.fill"],
+  ["noDelivery", "takeoutbag.and.cup.and.straw.fill"],
+  ["onTime", "graduationcap.fill"],
+];
+
+// 링 아래 작은 배지 줄. 하나도 보일 게 없으면 줄 자체를 만들지 않는다
+function badgeRow(w, states) {
+  const shown = BADGES.filter(([key]) => states?.[key] === "earned" || states?.[key] === "ongoing");
+  if (shown.length === 0) return;
+  const row = w.addStack();
+  row.spacing = 5;
+  row.addSpacer();
+  for (const [key, name] of shown) {
+    const sym = SFSymbol.named(name);
+    if (!sym) continue;
+    const img = row.addImage(sym.image);
+    img.imageSize = new Size(10, 10);
+    img.tintColor = states[key] === "earned" ? C.badge : C.off;
+  }
+  row.addSpacer();
 }
 
 // 꽉 찬 원은 이음새가 생기지 않게 정원으로 그린다
@@ -147,23 +175,42 @@ function arc(dc, c, r, from, to, width, color) {
   for (const p of [pt(from), pt(to)]) dc.fillEllipse(new Rect(p.x - width / 2, p.y - width / 2, width, width));
 }
 
-function chip(stack, image, amount, color) {
-  const done = amount > 0;
+// 매일 보상 한 칸: 아이콘 + 아래 짧은 막대 (오늘 받은 금액 / 그 항목 상한)
+function chip(stack, image, reward, color) {
+  const pct = reward.max > 0 ? Math.min(1, reward.amount / reward.max) : 0;
   const s = stack.addStack();
   s.layoutVertically();
   const iconRow = s.addStack();
   iconRow.addSpacer();
   const img = iconRow.addImage(image);
-  img.imageSize = new Size(19, 19);
-  img.tintColor = done ? color : C.off;
+  img.imageSize = new Size(17, 17);
+  img.tintColor = pct > 0 ? color : C.off;
   iconRow.addSpacer();
-  s.addSpacer(3);
-  const textRow = s.addStack();
-  textRow.addSpacer();
-  const t = textRow.addText(done ? `+${won(amount)}` : "0"); // 안 한 날도 같은 높이를 차지하게 투명 글자를 둔다
-  t.font = font(11, "SemiBold");
-  t.textColor = done ? color : Color.clear();
-  textRow.addSpacer();
+  s.addSpacer(4);
+  const barRow = s.addStack();
+  barRow.addSpacer();
+  barRow.addImage(barImage(pct, color)).imageSize = new Size(16, 3);
+  barRow.addSpacer();
+}
+
+function barImage(pct, color) {
+  const dc = new DrawContext();
+  dc.size = new Size(16, 3);
+  dc.opaque = false;
+  dc.respectScreenScale = true;
+  const track = new Path();
+  track.addRoundedRect(new Rect(0, 0, 16, 3), 1.5, 1.5);
+  dc.addPath(track);
+  dc.setFillColor(C.track);
+  dc.fillPath();
+  if (pct > 0) {
+    const fill = new Path();
+    fill.addRoundedRect(new Rect(0, 0, Math.max(3, 16 * pct), 3), 1.5, 1.5);
+    dc.addPath(fill);
+    dc.setFillColor(color);
+    dc.fillPath();
+  }
+  return dc.getImage();
 }
 
 async function homeWidget(d) {
@@ -173,11 +220,13 @@ async function homeWidget(d) {
 
   const top = w.addStack();
   top.addSpacer();
-  const ring = top.addImage(ringImage(d, 104, 10, 24));
-  ring.imageSize = new Size(104, 104);
+  const ring = top.addImage(ringImage(d, 96, 9, 23));
+  ring.imageSize = new Size(96, 96);
   top.addSpacer();
 
-  w.addSpacer(8);
+  w.addSpacer(5);
+  badgeRow(w, d.achievementsToday);
+  w.addSpacer(6);
 
   // 정산이 필요하면 보상 줄 대신 채우기/빼기 안내를 보여주고, 위젯을 누르면 토스 송금 화면을 연다
   if (d.settlement) {
@@ -197,9 +246,13 @@ async function homeWidget(d) {
 
   const chips = w.addStack();
   const git = await githubIcon();
-  chip(chips, SFSymbol.named("figure.run").image, d.rewardsToday.exercise, C.run);
-  chip(chips, SFSymbol.named("book.fill").image, d.rewardsToday.study, C.book);
-  chip(chips, git, d.rewardsToday.commit, C.git);
+  const sym = (name, fallback) => (SFSymbol.named(name) ?? SFSymbol.named(fallback)).image;
+  const r = d.rewardsToday;
+  chip(chips, sym("figure.run", "figure.walk"), r.exercise, C.run);
+  chip(chips, sym("book.fill", "book"), r.study, C.book);
+  chip(chips, git, r.commit, C.git);
+  chip(chips, sym("character.bubble.fill", "bubble.left.fill"), r.malhae, C.malhae);
+  chip(chips, sym("pencil.and.list.clipboard", "list.bullet.clipboard.fill"), r.psat, C.psat);
   return w;
 }
 

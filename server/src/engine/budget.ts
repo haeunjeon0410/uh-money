@@ -9,6 +9,7 @@ export interface LedgerTx {
   at: Date;
   amount: number; // 항상 양수
   effect: Effect;
+  counterparty?: string; // 가맹점·상대방 (배달 판정에 쓴다)
 }
 
 function signed(tx: LedgerTx): number {
