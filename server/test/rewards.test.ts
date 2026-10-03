@@ -14,9 +14,9 @@ describe("매일 보상", () => {
     expect(rewardFor({ ...none, commits: 25 }).commit).toBe(1_000);
   });
 
-  it("말해보카는 10분 이상이면 500원, 피셋은 500원", () => {
-    expect(rewardFor({ ...none, malhaeMinutes: 9 }).malhae).toBe(0);
-    expect(rewardFor({ ...none, malhaeMinutes: 10 }).malhae).toBe(500);
+  it("말해보카는 15분 이상이면 500원, 피셋은 500원", () => {
+    expect(rewardFor({ ...none, malhaeMinutes: 14 }).malhae).toBe(0);
+    expect(rewardFor({ ...none, malhaeMinutes: 15 }).malhae).toBe(500);
     expect(rewardFor({ ...none, psat: true }).psat).toBe(500);
   });
 

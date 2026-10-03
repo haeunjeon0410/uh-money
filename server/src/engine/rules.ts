@@ -14,8 +14,8 @@ export const RULES = {
   studyMinSessionMinutes: 10, // 이보다 짧은 집중 모드는 실수로 켠 것으로 본다
   commit: 100,
   commitMax: 1_000, // 10회
-  malhae: 500, // 말해보카를 하루 malhaeMinMinutes 이상 켜 둠
-  malhaeMinMinutes: 10,
+  malhae: 500, // 말해보카를 하루 합쳐 malhaeMinMinutes(15분) 이상 켜 둠
+  malhaeMinMinutes: 15,
   psat: 500, // my-dr에서 그날 문제 풀이를 업로드함
 
   // 업적 — "참은 것·지킨 것". 하루 상한과 별개
