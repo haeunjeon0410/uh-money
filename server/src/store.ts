@@ -15,6 +15,8 @@ export interface Env {
   DAZZANG_URL?: string; // 다짱 주소 (예: https://….vercel.app)
   DAZZANG_TOKEN?: string; // 다짱의 EXTERNAL_TOKEN과 같은 값
   DAZZANG_USER_ID?: string; // 다짱에서 내 사용자 ID
+  MYDR_URL?: string; // my-dr 서버 주소
+  MYDR_TOKEN?: string; // my-dr의 ACCESS_TOKEN
   SCHOOL_TIMETABLE?: string; // "mon=09:00,tue=10:30" 요일별 첫 수업 시작 (학교 출석 업적)
 }
 

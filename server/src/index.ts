@@ -1,6 +1,7 @@
 import { ingestNotification, widget, summary, weekView } from "./app";
 import { syncCommits } from "./github";
 import { syncExercise } from "./dazzang";
+import { syncPsat } from "./mydr";
 import * as store from "./store";
 import type { Env } from "./store";
 
@@ -61,15 +62,17 @@ export async function handle(req: Request, env: Env, now = new Date()): Promise<
       return json(await syncCommits(env, now));
     case "POST /sync/dazzang":
       return json(await syncExercise(env, now));
+    case "POST /sync/mydr":
+      return json(await syncPsat(env, now));
   }
   return json({ error: "not found" }, 404);
 }
 
 export default {
   fetch: (req: Request, env: Env) => handle(req, env),
-  // wrangler.toml의 cron: 매시 7분에 GitHub 커밋과 다짱 운동 인증 동기화
+  // wrangler.toml의 cron: 매시 7분에 GitHub 커밋, 다짱 운동 인증, my-dr 풀이일 동기화
   scheduled: (_event: ScheduledController, env: Env, ctx: ExecutionContext) => {
     const now = new Date();
-    ctx.waitUntil(Promise.allSettled([syncCommits(env, now), syncExercise(env, now)]));
+    ctx.waitUntil(Promise.allSettled([syncCommits(env, now), syncExercise(env, now), syncPsat(env, now)]));
   },
 };
