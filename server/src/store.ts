@@ -8,6 +8,10 @@ export interface Env {
   PHONE_TOKEN: string;
   OWNER_NAMES: string;
   FIRST_WEEK: string;
+  KBANK_ACCOUNT?: string; // 케이뱅크 계좌번호 (월요일 채우기 토스 링크용)
+  SALARY_ACCOUNT?: string; // "은행:계좌번호" 형식의 월급통장 (넘친 돈 빼기 토스 링크용)
+  GITHUB_TOKEN?: string; // 비공개 저장소 커밋까지 읽는 읽기 전용 토큰
+  GITHUB_USER: string;
 }
 
 export interface RawInput {
@@ -101,6 +105,14 @@ export async function studySessionsSince(db: D1Database, since: Date) {
 export async function exerciseDaysSince(db: D1Database, sinceDay: string): Promise<Set<string>> {
   const { results } = await db.prepare(`SELECT day FROM exercise_days WHERE day >= ?`).bind(sinceDay).all<{ day: string }>();
   return new Set(results.map((r) => r.day));
+}
+
+export async function insertCommit(db: D1Database, sha: string, at: Date): Promise<boolean> {
+  const r = await db
+    .prepare(`INSERT INTO commits (sha, committed_at) VALUES (?, ?) ON CONFLICT(sha) DO NOTHING`)
+    .bind(sha, at.toISOString())
+    .run();
+  return r.meta.changes > 0;
 }
 
 export async function commitTimesSince(db: D1Database, since: Date): Promise<Date[]> {

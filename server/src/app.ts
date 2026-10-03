@@ -4,6 +4,7 @@ import { rewardFor, studyMinutesByDay, type DayReward } from "./engine/rewards";
 import { todayView, weekBudget, spentInWeek, weekSavings, settlementTransfer } from "./engine/budget";
 import { dayKey, weekKey, addDays, dayStart } from "./engine/time";
 import { RULES } from "./engine/rules";
+import { settlementFor } from "./settlement";
 import * as store from "./store";
 import type { Env } from "./store";
 
@@ -99,20 +100,25 @@ export async function budgetFor(env: Env, week: string, now: Date): Promise<numb
 export async function widget(env: Env, now: Date) {
   const week = weekKey(now);
   const today = dayKey(now);
-  const [budget, txs, rewards, seen] = await Promise.all([
+  const [budget, txs, rewards, seen, balance] = await Promise.all([
     budgetFor(env, week, now),
     store.ledgerSince(env.DB, dayStart(week)),
     dailyRewards(env, today, today, now),
     store.lastSeen(env.DB),
+    store.latestBalance(env.DB),
   ]);
   const view = todayView(now, budget, txs);
   const r = rewards.get(today)!;
+  const left = budget - spentInWeek(txs, week);
   return {
+    week,
     remaining: view.remaining,
     allowance: view.allowance,
     spentToday: view.spentToday,
     rewardsToday: { exercise: r.exercise, study: r.study, commit: r.commit },
     stale: !seen || now.getTime() - seen.getTime() > STALE_AFTER_MS,
+    // 케이뱅크 잔액이 이번 주에 쓸 돈과 다르면 채우기/빼기 안내 (위젯이 알림과 토스 링크로 띄운다)
+    settlement: settlementFor(left, balance, { kbank: env.KBANK_ACCOUNT, salary: env.SALARY_ACCOUNT }),
     asOf: now.toISOString(),
   };
 }

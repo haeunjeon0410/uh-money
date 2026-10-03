@@ -7,7 +7,7 @@ const kst = (s: string) => new Date(`${s}+09:00`);
 
 let env: Env;
 beforeEach(() => {
-  env = { DB: createTestDb(), COLLECTOR_TOKEN: "c-token", PHONE_TOKEN: "p-token", OWNER_NAMES: "홍길동", FIRST_WEEK: "2026-10-05" };
+  env = { DB: createTestDb(), COLLECTOR_TOKEN: "c-token", PHONE_TOKEN: "p-token", OWNER_NAMES: "홍길동", FIRST_WEEK: "2026-10-05", GITHUB_USER: "me" };
 });
 
 function call(method: string, path: string, now: Date, token: string, body?: unknown) {
@@ -82,5 +82,19 @@ describe("수집기 생존 신호", () => {
     await call("POST", "/heartbeat", kst("2026-10-05T06:00:00"), "c-token", { device: "galaxy" });
     expect((await call("GET", "/widget", kst("2026-10-05T08:00:00"), "p-token")).body.stale).toBe(false);
     expect((await call("GET", "/widget", kst("2026-10-05T10:00:00"), "p-token")).body.stale).toBe(true);
+  });
+});
+
+describe("위젯 정산 안내", () => {
+  it("첫 주 월요일에 케이뱅크 잔액이 모자라면 채우기 링크가 붙고, 채우면 사라진다", async () => {
+    env.KBANK_ACCOUNT = "100200300400";
+    await notify("2026-10-05T07:00:00", "출금 1,000원\n편의점 | 입출금통장(1234)\n잔액 50,080원");
+    let w = await call("GET", "/widget", kst("2026-10-05T08:00:00"), "p-token");
+    expect(w.body.settlement).toMatchObject({ action: "FILL", amount: 23_920 }); // 75,000 − 1,000 − 50,080
+    expect(w.body.settlement.url).toContain("amount=23920");
+
+    await notify("2026-10-05T09:00:00", "입금 23,920원\n홍길동 | 입출금통장(1234)\n잔액 74,000원");
+    w = await call("GET", "/widget", kst("2026-10-05T09:05:00"), "p-token");
+    expect(w.body.settlement).toBeNull();
   });
 });

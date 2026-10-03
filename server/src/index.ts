@@ -1,4 +1,5 @@
 import { ingestNotification, widget, summary } from "./app";
+import { syncCommits } from "./github";
 import * as store from "./store";
 import type { Env } from "./store";
 
@@ -43,8 +44,16 @@ export async function handle(req: Request, env: Env, now = new Date()): Promise<
     case "POST /study/stop":
       await store.stopStudy(env.DB, now);
       return json({ ok: true });
+    case "POST /sync/github": // 1시간 주기를 기다리지 않고 바로 확인할 때
+      return json(await syncCommits(env, now));
   }
   return json({ error: "not found" }, 404);
 }
 
-export default { fetch: (req: Request, env: Env) => handle(req, env) };
+export default {
+  fetch: (req: Request, env: Env) => handle(req, env),
+  // wrangler.toml의 cron: 매시 7분에 GitHub 커밋 동기화
+  scheduled: (_event: ScheduledController, env: Env, ctx: ExecutionContext) => {
+    ctx.waitUntil(syncCommits(env, new Date()));
+  },
+};

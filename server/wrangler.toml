@@ -8,11 +8,18 @@ binding = "DB"
 database_name = "uh-money"
 database_id = "20c1ede5-4791-4c34-94a3-1dadf7245897"
 
+[triggers]
+crons = ["7 * * * *"] # 매시 7분 GitHub 커밋 동기화
+
 [vars]
 # 첫 주(75,000원)가 시작되는 월요일
 FIRST_WEEK = "2026-10-05"
+GITHUB_USER = "haeunjeon0410"
 
 # 비밀값은 .dev.vars(로컬) / `npx wrangler secret put`(배포)으로 넣는다:
 #   COLLECTOR_TOKEN  공기계 수집기용
 #   PHONE_TOKEN      아이폰 위젯·단축어용
 #   OWNER_NAMES      본인 이름 (쉼표로 여러 개). 내 계좌 간 이동을 지출에서 빼는 데 쓴다
+#   KBANK_ACCOUNT    케이뱅크 계좌번호 (월요일 채우기 토스 링크)
+#   SALARY_ACCOUNT   "은행:계좌번호" 월급통장 (넘친 돈 빼기 토스 링크)
+#   GITHUB_TOKEN     읽기 전용 fine-grained 토큰 (비공개 저장소 커밋까지 집계)

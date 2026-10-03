@@ -178,6 +178,23 @@ async function homeWidget(d) {
   top.addSpacer();
 
   w.addSpacer(8);
+
+  // 정산이 필요하면 보상 줄 대신 채우기/빼기 안내를 보여주고, 위젯을 누르면 토스 송금 화면을 연다
+  if (d.settlement) {
+    if (d.settlement.url) w.url = d.settlement.url;
+    const row = w.addStack();
+    row.addSpacer();
+    const pill = row.addStack();
+    pill.backgroundColor = d.settlement.action === "FILL" ? C.green : C.warn;
+    pill.cornerRadius = 10;
+    pill.setPadding(5, 10, 5, 10);
+    const t = pill.addText(`₩${won(d.settlement.amount)} ${d.settlement.action === "FILL" ? "채우기" : "빼기"}`);
+    t.font = font(12);
+    t.textColor = Color.black();
+    row.addSpacer();
+    return w;
+  }
+
   const chips = w.addStack();
   const git = await githubIcon();
   chip(chips, SFSymbol.named("figure.run").image, d.rewardsToday.exercise, C.run);
@@ -195,10 +212,27 @@ function errorWidget(message) {
   return w;
 }
 
+// 정산 안내 알림은 같은 주·같은 종류로는 한 번만 보낸다. 알림을 누르면 토스 송금 화면이 열린다
+async function notifySettlement(d) {
+  const s = d.settlement;
+  if (!s || !s.url) return;
+  const key = `uh-money-notified-${d.week}-${s.action}`;
+  if (Keychain.contains(key)) return;
+  const n = new Notification();
+  n.title = s.action === "FILL" ? "이번 주 용돈 채우기" : "남은 돈 빼기";
+  n.body = s.action === "FILL"
+    ? `케이뱅크에 ₩${won(s.amount)}을 채워 주세요. 누르면 토스 송금 화면이 열려요.`
+    : `케이뱅크에 ₩${won(s.amount)}이 남아요. 월급통장으로 보내 주세요. (토스에서 보내는 계좌를 케이뱅크로 선택)`;
+  n.openURL = s.url;
+  await n.schedule();
+  Keychain.set(key, "1");
+}
+
 // 로더가 importModule로 불러 main()을 실행한다 (Scriptable 모듈은 최상위 await를 못 쓴다)
 module.exports.main = async () => {
   const data = await load();
   const widget = data.error ? errorWidget(data.error) : await homeWidget(data);
+  if (!data.error && !data.offline) await notifySettlement(data);
   widget.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
 
   if (config.runsInWidget) Script.setWidget(widget);
