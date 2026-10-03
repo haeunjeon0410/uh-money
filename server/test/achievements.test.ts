@@ -38,10 +38,10 @@ describe("학교 출석", () => {
     expect(table.has(3)).toBe(false);
   });
 
-  it("첫 수업 전에 도착하면 제시간, 2분까지는 봐주고 그 뒤는 아님", () => {
+  it("첫 수업 전에 도착하면 제시간, 3분까지는 봐주고 그 뒤는 아님", () => {
     expect(onTime("2026-10-05", [kst("2026-10-05T08:55:00")], table)).toBe(true);
-    expect(onTime("2026-10-05", [kst("2026-10-05T09:02:00")], table)).toBe(true);
-    expect(onTime("2026-10-05", [kst("2026-10-05T09:03:00")], table)).toBe(false);
+    expect(onTime("2026-10-05", [kst("2026-10-05T09:03:00")], table)).toBe(true);
+    expect(onTime("2026-10-05", [kst("2026-10-05T09:04:00")], table)).toBe(false);
   });
 
   it("수업 없는 날은 도착해도 없음", () => {

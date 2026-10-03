@@ -22,7 +22,7 @@ export const RULES = {
   noSpend: 3_000, // 하루 지출 0원
   keptLimit: 500, // 하루가 끝났을 때 오늘 쓸 돈이 0원 이상
   onTime: 500, // 학교에 첫 수업 시작 전 도착
-  onTimeGraceMinutes: 2, // 첫 수업 시작 후 몇 분까지 제시간으로 칠지 (위치 감지가 1~3분 늦을 수 있어서)
+  onTimeGraceMinutes: 3, // 첫 수업 시작 후 몇 분까지 제시간으로 칠지 (위치 감지가 1~3분 늦을 수 있어서)
   noDelivery: 500, // 배달 결제 0건
 
   weeklyRewardMax: 40_000, // 한 주 보상 상한 → 다음 주 예산은 최대 75,000원
