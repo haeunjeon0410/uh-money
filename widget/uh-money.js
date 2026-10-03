@@ -269,7 +269,7 @@ async function notifySettlement(d) {
   const n = new Notification();
   n.title = s.action === "FILL" ? "이번 주 용돈 채우기" : "남은 돈 빼기";
   n.body = s.action === "FILL"
-    ? `케이뱅크에 ₩${won(s.amount)}을 채워 주세요. 누르면 토스 송금 화면이 열려요.`
+    ? `케이뱅크에 ₩${won(s.amount)}을 채워 주세요.`
     : `케이뱅크에 ₩${won(s.amount)}이 남아요. 월급통장으로 보내 주세요. (토스에서 보내는 계좌를 케이뱅크로 선택)`;
   n.openURL = s.url;
   await n.schedule();
