@@ -259,8 +259,8 @@ async function homeWidget(d) {
   chip(chips, sym("figure.run", "figure.walk"), r.exercise, C.run);
   chip(chips, sym("book.fill", "book"), r.study, C.book);
   chip(chips, git, r.commit, C.git);
-  chip(chips, sym("character.bubble.fill", "bubble.left.fill"), r.malhae, C.malhae);
-  chip(chips, sym("pencil.and.list.clipboard", "list.bullet.clipboard.fill"), r.psat, C.psat);
+  chip(chips, sym("character.book.closed.fill", "globe"), r.malhae, C.malhae);
+  chip(chips, sym("scope", "target"), r.psat, C.psat);
   return w;
 }
 
