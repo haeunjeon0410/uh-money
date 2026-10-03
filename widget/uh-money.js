@@ -1,5 +1,5 @@
 // Uh Money 위젯 (Scriptable). 아이폰에는 loader.js만 넣고, 이 파일은 로더가 GitHub에서 받아 실행한다.
-// 디자인: design/widget.html (다크 링 + 오늘 받은 보상 아이콘 3개)
+// 디자인: design/widget.html (다크 링 + 오늘 받은 보상 아이콘 3개). 홈 화면 작은 위젯만 지원한다
 
 const SERVER = "https://uh-money.uh-money-server.workers.dev";
 const TOKEN_KEY = "uh-money-phone-token";
@@ -78,7 +78,7 @@ async function githubIcon() {
 const won = (n) => Math.abs(n).toLocaleString("ko-KR");
 
 // 링 + 가운데 숫자를 한 장의 이미지로 그린다 (위젯 스택은 겹쳐 그릴 수 없어서)
-function ringImage(d, size, lineWidth, numberSize, mono = false) {
+function ringImage(d, size, lineWidth, numberSize) {
   const dc = new DrawContext();
   dc.size = new Size(size, size);
   dc.opaque = false;
@@ -88,22 +88,34 @@ function ringImage(d, size, lineWidth, numberSize, mono = false) {
   const pct = over ? 1 : d.allowance > 0 ? Math.max(0, Math.min(1, d.remaining / d.allowance)) : 0;
   const cx = size / 2;
   const r = (size - lineWidth) / 2;
-  const color = mono ? C.white : over ? C.red : C.green;
 
-  arc(dc, cx, r, 0, 1, lineWidth, mono ? new Color("#ffffff", 0.3) : C.track);
-  if (pct > 0) arc(dc, cx, r, 0, pct, lineWidth, color);
+  arc(dc, cx, r, 0, 1, lineWidth, C.track);
+  if (pct > 0) arc(dc, cx, r, 0, pct, lineWidth, over ? C.red : C.green);
 
-  if (numberSize > 0) {
-    const label = `${over ? "−" : ""}₩${won(d.remaining)}`;
-    dc.setFont(font(over ? numberSize * 0.82 : numberSize));
-    dc.setTextColor(over && !mono ? C.red : C.white);
+  // ₩는 작은 회색, 숫자는 크고 굵게. DrawContext엔 글자 폭 측정이 없어서 글자별 폭을 어림해 가운데 맞춘다
+  const num = `${over ? "−" : ""}${won(d.remaining)}`;
+  const big = over ? numberSize * 0.85 : numberSize;
+  const small = big * 0.55;
+  const numWidth = [...num].reduce((w, ch) => w + (ch === "," ? 0.27 : 0.6) * big, 0);
+  const wonWidth = 0.72 * small;
+  const gap = big * 0.06;
+  let x = cx - (wonWidth + gap + numWidth) / 2;
+  const top = cx - big * 0.62;
+
+  dc.setTextAlignedLeft();
+  dc.setFont(font(small, "SemiBold"));
+  dc.setTextColor(over ? C.red : C.gray);
+  dc.drawTextInRect("₩", new Rect(x, top + (big - small) * 0.78, wonWidth + 4, small * 1.4));
+  x += wonWidth + gap;
+  dc.setFont(font(big));
+  dc.setTextColor(over ? C.red : C.white);
+  dc.drawTextInRect(num, new Rect(x, top, numWidth + 8, big * 1.4));
+
+  if (d.stale || d.offline) {
     dc.setTextAlignedCenter();
-    dc.drawTextInRect(label, new Rect(lineWidth, cx - numberSize * 0.68, size - lineWidth * 2, numberSize * 1.4));
-    if (d.stale || d.offline) {
-      dc.setFont(font(numberSize * 0.4, "SemiBold"));
-      dc.setTextColor(C.warn);
-      dc.drawTextInRect(d.offline ? "⚠︎ 오프라인" : "⚠︎ 수집 끊김", new Rect(lineWidth, cx + numberSize * 0.62, size - lineWidth * 2, numberSize));
-    }
+    dc.setFont(font(big * 0.42, "SemiBold"));
+    dc.setTextColor(C.warn);
+    dc.drawTextInRect(d.offline ? "⚠︎ 오프라인" : "⚠︎ 수집 끊김", new Rect(lineWidth, cx + big * 0.7, size - lineWidth * 2, big));
   }
   return dc.getImage();
 }
@@ -127,73 +139,42 @@ function arc(dc, c, r, from, to, width, color) {
   }
 }
 
-function chip(stack, image, amount, color, mono) {
+function chip(stack, image, amount, color) {
+  const done = amount > 0;
   const s = stack.addStack();
   s.layoutVertically();
-  s.centerAlignContent();
-  const done = amount > 0;
-  const row = s.addStack();
-  row.addSpacer();
-  const img = row.addImage(image);
-  img.imageSize = new Size(18, 18);
-  img.tintColor = mono ? (done ? C.white : new Color("#ffffff", 0.35)) : done ? color : C.off;
-  row.addSpacer();
-  if (mono) return;
-  s.addSpacer(2);
+  const iconRow = s.addStack();
+  iconRow.addSpacer();
+  const img = iconRow.addImage(image);
+  img.imageSize = new Size(19, 19);
+  img.tintColor = done ? color : C.off;
+  iconRow.addSpacer();
+  s.addSpacer(3);
   const textRow = s.addStack();
   textRow.addSpacer();
-  const t = textRow.addText(won(amount));
-  t.font = font(12, "SemiBold");
-  t.textColor = done ? C.white : C.off;
+  const t = textRow.addText(done ? `+${won(amount)}` : "0"); // 안 한 날도 같은 높이를 차지하게 투명 글자를 둔다
+  t.font = font(11, "SemiBold");
+  t.textColor = done ? color : Color.clear();
   textRow.addSpacer();
 }
 
 async function homeWidget(d) {
   const w = new ListWidget();
   w.backgroundColor = C.bg;
-  w.setPadding(12, 12, 10, 12);
+  w.setPadding(12, 10, 10, 10);
 
   const top = w.addStack();
   top.addSpacer();
-  const ring = top.addImage(ringImage(d, 100, 9, 21));
-  ring.imageSize = new Size(100, 100);
+  const ring = top.addImage(ringImage(d, 104, 11, 24));
+  ring.imageSize = new Size(104, 104);
   top.addSpacer();
 
-  w.addSpacer();
+  w.addSpacer(8);
   const chips = w.addStack();
   const git = await githubIcon();
   chip(chips, SFSymbol.named("figure.run").image, d.rewardsToday.exercise, C.run);
   chip(chips, SFSymbol.named("book.fill").image, d.rewardsToday.study, C.book);
   chip(chips, git, d.rewardsToday.commit, C.git);
-  return w;
-}
-
-async function lockWidget(d) {
-  const w = new ListWidget();
-  const row = w.addStack();
-  row.centerAlignContent();
-  const ring = row.addImage(ringImage(d, 40, 5, 0, true));
-  ring.imageSize = new Size(40, 40);
-  row.addSpacer(8);
-
-  const col = row.addStack();
-  col.layoutVertically();
-  const n = col.addText(`${d.remaining < 0 ? "−" : ""}₩${won(d.remaining)}${d.stale || d.offline ? " ⚠︎" : ""}`);
-  n.font = font(20);
-  n.minimumScaleFactor = 0.7;
-  col.addSpacer(2);
-  const icons = col.addStack();
-  icons.spacing = 6;
-  const git = await githubIcon();
-  for (const [img, amount] of [
-    [SFSymbol.named("figure.run").image, d.rewardsToday.exercise],
-    [SFSymbol.named("book.fill").image, d.rewardsToday.study],
-    [git, d.rewardsToday.commit],
-  ]) {
-    const i = icons.addImage(img);
-    i.imageSize = new Size(13, 13);
-    i.tintColor = new Color("#ffffff", amount > 0 ? 1 : 0.35);
-  }
   return w;
 }
 
@@ -209,11 +190,7 @@ function errorWidget(message) {
 // 로더가 importModule로 불러 main()을 실행한다 (Scriptable 모듈은 최상위 await를 못 쓴다)
 module.exports.main = async () => {
   const data = await load();
-  const family = config.widgetFamily ?? "small";
-  let widget;
-  if (data.error) widget = errorWidget(data.error);
-  else if (family.startsWith("accessory")) widget = await lockWidget(data);
-  else widget = await homeWidget(data);
+  const widget = data.error ? errorWidget(data.error) : await homeWidget(data);
   widget.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
 
   if (config.runsInWidget) Script.setWidget(widget);
