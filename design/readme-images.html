@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/static/split/WantedSans.min.css">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#000;color:#fff;font-family:"Wanted Sans",sans-serif;padding:36px}
+  .row{display:flex;gap:28px;align-items:flex-start}
+  .cap{font-size:15px;color:#8e8e93;text-align:center;margin-top:14px}
+  .tile{width:300px;height:300px;border-radius:64px;background:#1c1c1e;position:relative}
+  .ring{position:absolute;left:50%;top:18px;transform:translateX(-50%)}
+  .num{position:absolute;left:0;right:0;top:18px;height:184px;display:flex;align-items:center;justify-content:center;font-weight:700;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+  .num .w{color:#8e8e93;font-weight:600;margin-right:3px}
+  .badges{position:absolute;left:0;right:0;top:214px;display:flex;justify-content:center;gap:9px;font-size:17px}
+  .chips{position:absolute;left:30px;right:30px;bottom:24px;display:flex;justify-content:space-between}
+  .chip{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:25px}
+  .bar{width:26px;height:5px;border-radius:3px;background:#2c2c2e;overflow:hidden}
+  .bar>div{height:100%}
+  .week{width:340px;border-radius:44px;background:#000;border:1px solid #2c2c2e;padding:30px 28px}
+  .week .l{font-size:16px;color:#8e8e93}
+  .week .big{font-size:44px;font-weight:700;margin:4px 0 14px}
+  .week .big small{font-size:18px;color:#8e8e93;font-weight:500}
+  .week .track{height:11px;border-radius:6px;background:#2c2c2e;overflow:hidden;display:flex}
+  .week .next{font-size:17px;color:#30d158;margin:16px 0 22px}
+  .week .r{display:flex;justify-content:space-between;font-size:17px;padding:10px 0;border-bottom:1px solid #1c1c1e}
+  .week .r i{display:inline-block;width:10px;height:10px;border-radius:5px;margin-right:12px}
+  .week .r.off{color:#48484a}
+  .days{display:flex;justify-content:space-between;align-items:flex-end;height:90px;margin:26px 6px 0}
+  .day{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:13px;color:#8e8e93}
+  .col{width:26px;border-radius:5px}
+  .sp{display:flex;justify-content:space-between;font-size:17px;color:#8e8e93;margin-top:24px;padding-top:16px;border-top:1px solid #2c2c2e}
+  .sp b{color:#fff}
+</style></head><body>
+<div class="row">
+  <div id="a"></div><div id="b"></div><div id="c"></div>
+</div>
+<script>
+const ring=(pct,color,size=184,sw=20)=>{const r=(size-sw)/2,c=2*Math.PI*r;return `<svg class="ring" width="${size}" height="${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#2c2c2e" stroke-width="${sw}"/>${pct>=1?`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}"/>`:`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${c*pct} ${c}" transform="rotate(-90 ${size/2} ${size/2})"/>`}</svg>`};
+const chip=(ic,col,p)=>`<div class="chip"><i class="ti ${ic}" style="color:${p>0?col:'#48484a'}"></i><div class="bar"><div style="width:${p*100}%;background:${col}"></div></div></div>`;
+const badge=(ic,state)=>`<i class="ti ${ic}" style="color:${state==='earned'?'#30d158':'#8e8e93'}"></i>`;
+const widget=(o)=>`<div class="tile">${ring(o.pct,o.over?'#ff453a':'#30d158')}
+<div class="num" style="font-size:${o.size}px;color:${o.over?'#ff453a':'#fff'}"><span class="w" style="font-size:${o.size*.55}px;${o.over?'color:#ff453a':''}">${o.over?'−₩':'₩'}</span>${o.text}</div>
+<div class="badges">${o.badges.join('')}</div>
+<div class="chips">${o.chips.join('')}</div></div>`;
+a.innerHTML=widget({pct:.55,over:false,size:40,text:'5,800',badges:[badge('ti-coin','ongoing'),badge('ti-shield-check','ongoing'),badge('ti-paper-bag','ongoing')],chips:[chip('ti-run','#ff9f0a',1),chip('ti-book','#bf5af2',.4),chip('ti-brand-github','#0a84ff',.3),chip('ti-message-circle','#64d2ff',0),chip('ti-pencil','#ffd60a',1)]})+'<div class="cap">평소 (오늘 남은 돈과 받은 보상)</div>';
+b.innerHTML=widget({pct:1,over:true,size:31,text:'3,000',badges:[],chips:[chip('ti-run','#ff9f0a',0),chip('ti-book','#bf5af2',0),chip('ti-brand-github','#0a84ff',0),chip('ti-message-circle','#64d2ff',0),chip('ti-pencil','#ffd60a',0)]})+'<div class="cap">한도를 넘긴 날</div>';
+const days=[[12000,'월'],[6500,'화'],[3000,'수'],[9000,'목'],[0,'금'],[-1,'토'],[-1,'일']];
+c.innerHTML=`<div class="week"><div class="l">이번 주 모은 보상</div><div class="big">₩24,000 <small>/ 40,000</small></div>
+<div class="track"><div style="width:22%;background:#ff9f0a"></div><div style="width:15%;background:#bf5af2"></div><div style="width:6%;background:#0a84ff"></div><div style="width:5%;background:#64d2ff"></div><div style="width:3%;background:#ffd60a"></div><div style="width:9%;background:#30d158"></div></div>
+<div class="next">다음 주 예산 ₩59,000</div>
+<div class="r"><span><i style="background:#ff9f0a"></i>운동 3회</span><span>9,000</span></div>
+<div class="r"><span><i style="background:#bf5af2"></i>공부 3시간</span><span>3,000</span></div>
+<div class="r"><span><i style="background:#0a84ff"></i>커밋 12회</span><span>1,200</span></div>
+<div class="r"><span><i style="background:#64d2ff"></i>어학 2일</span><span>1,000</span></div>
+<div class="r"><span><i style="background:#ffd60a"></i>문제 풀이 3일</span><span>1,500</span></div>
+<div class="r"><span><i style="background:#30d158"></i>업적 4일</span><span>8,300</span></div>
+<div class="days">${days.map(([v,d])=>`<div class="day"><div class="col" style="height:${v<0?0:Math.max(4,v/12000*70)}px;background:${d==='금'?'#30d158':'#3a3a3c'}"></div><span>${d}</span></div>`).join('')}</div>
+<div class="sp"><span>이번 주 지출</span><b>₩41,000</b></div></div><div class="cap">위젯을 누르면 열리는 주간 화면</div>`;
+</script></body></html>
