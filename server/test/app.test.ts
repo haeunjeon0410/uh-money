@@ -127,3 +127,14 @@ describe("주간 모아보기", () => {
     expect(v.body.days).toHaveLength(7);
   });
 });
+
+describe("출석 업적 상태", () => {
+  it("수업 있는 날은 마감 전 ongoing, 도착하면 earned, 마감이 지나도 도착이 없으면 failed, 수업 없는 날은 none", async () => {
+    env.SCHOOL_TIMETABLE = "mon=09:00";
+    expect((await call("GET", "/widget", kst("2026-10-05T08:00:00"), "p-token")).body.achievementsToday.onTime).toBe("ongoing");
+    expect((await call("GET", "/widget", kst("2026-10-05T09:01:00"), "p-token")).body.achievementsToday.onTime).toBe("failed");
+    expect((await call("GET", "/widget", kst("2026-10-06T08:00:00"), "p-token")).body.achievementsToday.onTime).toBe("none");
+    await call("POST", "/arrive/school", kst("2026-10-05T08:50:00"), "p-token");
+    expect((await call("GET", "/widget", kst("2026-10-05T09:30:00"), "p-token")).body.achievementsToday.onTime).toBe("earned");
+  });
+});

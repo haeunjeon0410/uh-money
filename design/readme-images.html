@@ -37,13 +37,13 @@
 <script>
 const ring=(pct,color,size=184,sw=20)=>{const r=(size-sw)/2,c=2*Math.PI*r;return `<svg class="ring" width="${size}" height="${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#2c2c2e" stroke-width="${sw}"/>${pct>=1?`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}"/>`:`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${c*pct} ${c}" transform="rotate(-90 ${size/2} ${size/2})"/>`}</svg>`};
 const chip=(ic,col,p)=>`<div class="chip"><i class="ti ${ic}" style="color:${p>0?col:'#48484a'}"></i><div class="bar"><div style="width:${p*100}%;background:${col}"></div></div></div>`;
-const badge=(ic,state)=>`<i class="ti ${ic}" style="color:${state==='earned'?'#30d158':'#8e8e93'}"></i>`;
+const badge=(ic,state)=>`<i class="ti ${ic}" style="color:${state==='earned'?'#30d158':'#48484a'}"></i>`;
 const widget=(o)=>`<div class="tile">${ring(o.pct,o.over?'#ff453a':'#30d158')}
 <div class="num" style="font-size:${o.size}px;color:${o.over?'#ff453a':'#fff'}"><span class="w" style="font-size:${o.size*.55}px;${o.over?'color:#ff453a':''}">${o.over?'−₩':'₩'}</span>${o.text}</div>
 <div class="badges">${o.badges.join('')}</div>
 <div class="chips">${o.chips.join('')}</div></div>`;
-a.innerHTML=widget({pct:.55,over:false,size:40,text:'5,800',badges:[badge('ti-coin','ongoing'),badge('ti-shield-check','ongoing'),badge('ti-paper-bag','ongoing')],chips:[chip('ti-run','#ff9f0a',1),chip('ti-book','#bf5af2',.4),chip('ti-brand-github','#0a84ff',.3),chip('ti-language','#64d2ff',0),chip('ti-target','#ffd60a',1)]})+'<div class="cap">평소 (오늘 남은 돈과 받은 보상)</div>';
-b.innerHTML=widget({pct:1,over:true,size:31,text:'3,000',badges:[],chips:[chip('ti-run','#ff9f0a',0),chip('ti-book','#bf5af2',0),chip('ti-brand-github','#0a84ff',0),chip('ti-language','#64d2ff',0),chip('ti-target','#ffd60a',0)]})+'<div class="cap">한도를 넘긴 날</div>';
+a.innerHTML=widget({pct:.55,over:false,size:40,text:'5,800',badges:[badge('ti-coin','off'),badge('ti-shield-check','earned'),badge('ti-paper-bag','earned')],chips:[chip('ti-run','#ff9f0a',1),chip('ti-book','#bf5af2',.4),chip('ti-brand-github','#0a84ff',.3),chip('ti-language','#64d2ff',0),chip('ti-target','#ffd60a',1)]})+'<div class="cap">평소 (오늘 남은 돈과 받은 보상)</div>';
+b.innerHTML=widget({pct:1,over:true,size:31,text:'3,000',badges:[badge('ti-coin','off'),badge('ti-shield-check','off'),badge('ti-paper-bag','earned')],chips:[chip('ti-run','#ff9f0a',0),chip('ti-book','#bf5af2',0),chip('ti-brand-github','#0a84ff',0),chip('ti-language','#64d2ff',0),chip('ti-target','#ffd60a',0)]})+'<div class="cap">한도를 넘긴 날</div>';
 const days=[[12000,'월'],[6500,'화'],[3000,'수'],[9000,'목'],[0,'금'],[-1,'토'],[-1,'일']];
 c.innerHTML=`<div class="week"><div class="l">이번 주 모은 보상</div><div class="big">₩24,000 <small>/ 40,000</small></div>
 <div class="track"><div style="width:22%;background:#ff9f0a"></div><div style="width:15%;background:#bf5af2"></div><div style="width:6%;background:#0a84ff"></div><div style="width:5%;background:#64d2ff"></div><div style="width:3%;background:#ffd60a"></div><div style="width:9%;background:#30d158"></div></div>

@@ -1,7 +1,7 @@
 import { parseKbank } from "./ingest/kbank";
 import { classify, checkGap } from "./ingest/classify";
 import { rewardFor, sessionMinutesByDay, weekRewardTotal, type DayReward } from "./engine/rewards";
-import { moneyAchievements, onTime, parseTimetable, isDelivery } from "./engine/achievements";
+import { moneyAchievements, onTime, parseTimetable, isDelivery, classDeadline } from "./engine/achievements";
 import { todayView, weekBudget, spentInWeek, weekSavings, settlementTransfer } from "./engine/budget";
 import { dayKey, weekKey, addDays, dayStart } from "./engine/time";
 import { RULES } from "./engine/rules";
@@ -136,6 +136,9 @@ export async function widget(env: Env, now: Date) {
   // 돈 업적은 하루가 끝나야 확정되니 오늘은 "아직 지키는 중(ongoing)"인지 "이미 깨짐(failed)"인지만 보여준다
   const todaySpends = txs.filter((t) => t.effect === "SPEND" && dayKey(t.at) === today);
   const state = (holding: boolean) => (holding ? "ongoing" : "failed");
+  // 출석은 수업이 있는 날만 해당. 도착하면 earned, 마감 전이면 ongoing(켜짐), 마감이 지나도록 도착이 없으면 failed(꺼짐)
+  const deadline = classDeadline(today, parseTimetable(env.SCHOOL_TIMETABLE));
+  const onTimeState = !deadline ? "none" : r.achievements.onTime > 0 ? "earned" : now <= deadline ? "ongoing" : "failed";
   return {
     week,
     remaining: view.remaining,
@@ -153,7 +156,7 @@ export async function widget(env: Env, now: Date) {
       noSpend: state(todaySpends.length === 0),
       keptLimit: state(view.remaining >= 0),
       noDelivery: state(!todaySpends.some((t) => isDelivery(t.counterparty ?? ""))),
-      onTime: r.achievements.onTime > 0 ? "earned" : "none",
+      onTime: onTimeState,
     },
     stale: !seen || now.getTime() - seen.getTime() > STALE_AFTER_MS,
     // 케이뱅크 잔액이 이번 주에 쓸 돈과 다르면 채우기/빼기 안내 (위젯이 알림과 토스 링크로 띄운다)

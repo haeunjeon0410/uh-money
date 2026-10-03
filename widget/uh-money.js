@@ -115,7 +115,8 @@ const G = {
   sideMargin: 20, // 보상 줄 좌우 여백 (넓히면 아이콘이 가운데로 모인다)
 };
 
-const BADGES = ["noSpend", "keptLimit", "noDelivery", "onTime"];
+// 출석(onTime)은 위젯에서 바꿀 수 없는 일이라 배지로 보여주지 않는다. 보상에는 그대로 반영된다
+const BADGES = ["noSpend", "keptLimit", "noDelivery"];
 const REWARDS = [
   ["exercise", C.run], ["study", C.book], ["commit", C.git], ["malhae", C.malhae], ["psat", C.psat],
 ];
@@ -164,13 +165,13 @@ function homeImage(d) {
     dc.drawTextInRect(d.offline ? "⚠︎ 오프라인" : "⚠︎ 수집 끊김", new Rect(0, top - 13, S, 12));
   }
 
-  // 업적 배지: 링 안 숫자 바로 아래. 달성은 초록, 지키는 중은 회색, 깨졌거나 해당 없으면 숨기고 남은 것만 가운데로 모은다
+  // 업적 배지: 링 안 숫자 바로 아래. 지키는 중이면 초록으로 켜져 있다가, 깨지면 회색으로 꺼진다(자리는 그대로)
   const st = d.achievementsToday;
-  const shown = BADGES.filter((k) => st?.[k] === "earned" || st?.[k] === "ongoing");
+  const shown = BADGES.filter((k) => st?.[k] !== undefined && st[k] !== "none");
   const badgeY = cy + big * 0.55 + 3;
   let bx = cx - (shown.length * G.badgeSize + (shown.length - 1) * G.badgeGap) / 2;
   for (const key of shown) {
-    dc.drawImageInRect(badgeIcon(key, st[key] === "earned"), new Rect(bx, badgeY, G.badgeSize, G.badgeSize));
+    dc.drawImageInRect(badgeIcon(key, st[key] === "earned" || st[key] === "ongoing"), new Rect(bx, badgeY, G.badgeSize, G.badgeSize));
     bx += G.badgeSize + G.badgeGap;
   }
 

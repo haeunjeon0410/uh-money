@@ -39,11 +39,17 @@ export function parseTimetable(value?: string): Map<number, number> {
   return table;
 }
 
-// 그날 첫 학교 도착이 첫 수업 시작(+여유) 전이면 제시간. 수업 없는 날은 false (불이익도 없음)
-export function onTime(day: string, arrivals: Date[], timetable: Map<number, number>, rules: Rules = RULES): boolean {
+// 그날 제시간 출석의 마감 시각 (첫 수업 시작 + 여유). 수업이 없는 날은 null
+export function classDeadline(day: string, timetable: Map<number, number>, rules: Rules = RULES): Date | null {
   const isoDay = ((new Date(Date.parse(day)).getUTCDay() + 6) % 7) + 1;
   const start = timetable.get(isoDay);
-  if (start === undefined) return false;
-  const deadline = new Date(Date.parse(day) - 9 * 60 * 60 * 1000 + (start + rules.onTimeGraceMinutes) * 60_000);
+  if (start === undefined) return null;
+  return new Date(Date.parse(day) - 9 * 60 * 60 * 1000 + (start + rules.onTimeGraceMinutes) * 60_000);
+}
+
+// 그날 첫 학교 도착이 첫 수업 시작(+여유) 전이면 제시간. 수업 없는 날은 false (불이익도 없음)
+export function onTime(day: string, arrivals: Date[], timetable: Map<number, number>, rules: Rules = RULES): boolean {
+  const deadline = classDeadline(day, timetable, rules);
+  if (!deadline) return false;
   return arrivals.some((a) => dayKey(a) === day && a.getTime() <= deadline.getTime());
 }
