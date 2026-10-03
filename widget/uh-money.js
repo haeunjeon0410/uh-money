@@ -140,16 +140,17 @@ function badgeRow(w, states) {
   const shown = BADGES.filter(([key]) => states?.[key] === "earned" || states?.[key] === "ongoing");
   if (shown.length === 0) return;
   const row = w.addStack();
-  row.spacing = 6;
-  row.addSpacer();
+  row.setPadding(0, 34, 0, 34); // 폭 전체에 퍼지지 않고 가운데에 모이게
   for (const [key, name] of shown) {
     const sym = SFSymbol.named(name);
     if (!sym) continue;
-    const img = row.addImage(sym.image);
+    const cell = row.addStack();
+    cell.addSpacer();
+    const img = cell.addImage(sym.image);
     img.imageSize = new Size(12, 12);
     img.tintColor = states[key] === "earned" ? C.badge : C.dim;
+    cell.addSpacer();
   }
-  row.addSpacer();
 }
 
 // 꽉 찬 원은 이음새가 생기지 않게 정원으로 그린다
@@ -219,11 +220,13 @@ async function homeWidget(d) {
   w.backgroundColor = C.bg;
   w.setPadding(12, 10, 10, 10);
 
+  // 가운데 정렬: 아이콘 줄처럼 "칸 안에 스페이서-내용-스페이서"로 만들면 위젯 폭을 꽉 채워 정확히 가운데에 온다
   const top = w.addStack();
-  top.addSpacer();
-  const ring = top.addImage(ringImage(d, 96, 9, 23));
+  const ringCell = top.addStack();
+  ringCell.addSpacer();
+  const ring = ringCell.addImage(ringImage(d, 96, 9, 23));
   ring.imageSize = new Size(96, 96);
-  top.addSpacer();
+  ringCell.addSpacer();
 
   w.addSpacer(5);
   badgeRow(w, d.achievementsToday);
