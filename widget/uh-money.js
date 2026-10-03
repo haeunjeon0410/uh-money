@@ -30,7 +30,6 @@ function font(size, weight = "Bold") {
 
 const fm = FileManager.local();
 const cachePath = fm.joinPath(fm.documentsDirectory(), CACHE_FILE);
-const githubIconPath = fm.joinPath(fm.documentsDirectory(), "uh-money-github.png");
 
 async function token() {
   if (Keychain.contains(TOKEN_KEY)) return Keychain.get(TOKEN_KEY);
@@ -68,23 +67,49 @@ async function load() {
   }
 }
 
-async function githubIcon() {
-  if (fm.fileExists(githubIconPath)) return fm.readImage(githubIconPath);
-  try {
-    const img = await new Request("https://github.githubassets.com/favicons/favicon-dark.png").loadImage();
-    fm.writeImage(githubIconPath, img);
-    return img;
-  } catch (e) {
-    return SFSymbol.named("chevron.left.forwardslash.chevron.right").image;
+// 아이콘은 시안과 똑같은 모양으로 미리 만든 이미지(widget/assets/icons-v1.png)를 쓴다.
+// iOS 기본 아이콘(SF 심볼)은 모양이 시안과 달라서, 한 장의 이미지에서 칸을 잘라 쓴다.
+const SPRITE_URL = "https://raw.githubusercontent.com/haeunjeon0410/uh-money/main/widget/assets/icons-v1.png";
+const spritePath = fm.joinPath(fm.documentsDirectory(), "uh-money-icons-v1.png");
+const CELL = 96;
+// [열, 줄]: 줄0=보상 색, 줄1=보상 꺼짐, 줄2=업적 달성(초록), 줄3=업적 지키는 중(회색)
+const ICON = {
+  exercise: [0, 0], study: [1, 0], commit: [2, 0], malhae: [3, 0], psat: [4, 0],
+  noSpend: [0, 2], keptLimit: [1, 2], noDelivery: [2, 2], onTime: [3, 2],
+};
+let sprite = null;
+
+async function loadSprite() {
+  if (!fm.fileExists(spritePath)) {
+    try {
+      fm.writeImage(spritePath, await new Request(SPRITE_URL).loadImage());
+    } catch (e) {
+      return;
+    }
   }
+  sprite = fm.readImage(spritePath);
 }
+
+function slice(col, row) {
+  const dc = new DrawContext();
+  dc.size = new Size(CELL, CELL);
+  dc.opaque = false;
+  dc.respectScreenScale = false;
+  if (sprite) dc.drawImageAtPoint(sprite, new Point(-col * CELL, -row * CELL));
+  return dc.getImage();
+}
+
+const rewardIcon = (key, on) => slice(ICON[key][0], on ? 0 : 1);
+const badgeIcon = (key, earned) => slice(ICON[key][0], earned ? 2 : 3);
 
 const won = (n) => Math.abs(n).toLocaleString("ko-KR");
 
 // 링 + 가운데 숫자를 한 장의 이미지로 그린다 (위젯 스택은 겹쳐 그릴 수 없어서)
+const BADGE_H = 18;
+
 function ringImage(d, size, lineWidth, numberSize) {
   const dc = new DrawContext();
-  dc.size = new Size(size, size);
+  dc.size = new Size(size, size + BADGE_H);
   dc.opaque = false;
   dc.respectScreenScale = true;
 
@@ -124,32 +149,22 @@ function ringImage(d, size, lineWidth, numberSize) {
     dc.setTextColor(C.warn);
     dc.drawTextInRect(d.offline ? "⚠︎ 오프라인" : "⚠︎ 수집 끊김", new Rect(lineWidth, top - 13, size - lineWidth * 2, 12));
   }
+  drawBadges(dc, d.achievementsToday, size);
   return dc.getImage();
 }
 
-// 업적 배지: 달성(earned)은 초록, 지키는 중(ongoing)은 회색, 깨졌거나 해당 없으면 숨긴다
-const BADGES = [
-  ["noSpend", "wonsign.circle.fill"],
-  ["keptLimit", "checkmark.shield.fill"],
-  ["noDelivery", "takeoutbag.and.cup.and.straw.fill"],
-  ["onTime", "graduationcap.fill"],
-];
+// 업적 배지: 달성(earned)은 초록, 지키는 중(ongoing)은 회색, 깨졌거나 해당 없으면 숨긴다. 링 이미지 아래에 가운데로 그린다
+const BADGES = ["noSpend", "keptLimit", "noDelivery", "onTime"];
 
-// 링 아래 작은 배지 줄. 하나도 보일 게 없으면 줄 자체를 만들지 않는다
-function badgeRow(w, states) {
-  const shown = BADGES.filter(([key]) => states?.[key] === "earned" || states?.[key] === "ongoing");
+function drawBadges(dc, states, size) {
+  const shown = BADGES.filter((k) => states?.[k] === "earned" || states?.[k] === "ongoing");
   if (shown.length === 0) return;
-  const row = w.addStack();
-  row.setPadding(0, 34, 0, 34); // 폭 전체에 퍼지지 않고 가운데에 모이게
-  for (const [key, name] of shown) {
-    const sym = SFSymbol.named(name);
-    if (!sym) continue;
-    const cell = row.addStack();
-    cell.addSpacer();
-    const img = cell.addImage(sym.image);
-    img.imageSize = new Size(12, 12);
-    img.tintColor = states[key] === "earned" ? C.badge : C.dim;
-    cell.addSpacer();
+  const s = 13;
+  const gap = 7;
+  let x = (size - (shown.length * s + (shown.length - 1) * gap)) / 2;
+  for (const key of shown) {
+    dc.drawImageInRect(badgeIcon(key, states[key] === "earned"), new Rect(x, size + 3, s, s));
+    x += s + gap;
   }
 }
 
@@ -178,15 +193,13 @@ function arc(dc, c, r, from, to, width, color) {
 }
 
 // 매일 보상 한 칸: 아이콘 + 아래 짧은 막대 (오늘 받은 금액 / 그 항목 상한)
-function chip(stack, image, reward, color) {
+function chip(stack, key, reward, color) {
   const pct = reward.max > 0 ? Math.min(1, reward.amount / reward.max) : 0;
   const s = stack.addStack();
   s.layoutVertically();
   const iconRow = s.addStack();
   iconRow.addSpacer();
-  const img = iconRow.addImage(image);
-  img.imageSize = new Size(16, 16);
-  img.tintColor = pct > 0 ? color : C.off;
+  iconRow.addImage(rewardIcon(key, pct > 0)).imageSize = new Size(18, 18);
   iconRow.addSpacer();
   s.addSpacer(4);
   const barRow = s.addStack();
@@ -220,17 +233,11 @@ async function homeWidget(d) {
   w.backgroundColor = C.bg;
   w.setPadding(12, 10, 10, 10);
 
-  // 가운데 정렬: 아이콘 줄처럼 "칸 안에 스페이서-내용-스페이서"로 만들면 위젯 폭을 꽉 채워 정확히 가운데에 온다
-  const top = w.addStack();
-  const ringCell = top.addStack();
-  ringCell.addSpacer();
-  const ring = ringCell.addImage(ringImage(d, 96, 9, 23));
-  ring.imageSize = new Size(96, 96);
-  ringCell.addSpacer();
-
+  // 링과 배지는 한 장의 이미지이고, centerAlignImage로 위젯 가운데에 둔다
+  const ring = w.addImage(ringImage(d, 90, 9, 22));
+  ring.imageSize = new Size(90, 90 + BADGE_H);
+  ring.centerAlignImage();
   w.addSpacer(5);
-  badgeRow(w, d.achievementsToday);
-  w.addSpacer(6);
 
   // 위젯을 누르면 이 스크립트를 앱에서 실행해 주간 모아보기를 연다
   w.url = `scriptable:///run/${encodeURIComponent(Script.name())}`;
@@ -253,14 +260,12 @@ async function homeWidget(d) {
 
   const chips = w.addStack();
   chips.setPadding(0, 6, 0, 6);
-  const git = await githubIcon();
-  const sym = (name, fallback) => (SFSymbol.named(name) ?? SFSymbol.named(fallback)).image;
   const r = d.rewardsToday;
-  chip(chips, sym("figure.run", "figure.walk"), r.exercise, C.run);
-  chip(chips, sym("book.fill", "book"), r.study, C.book);
-  chip(chips, git, r.commit, C.git);
-  chip(chips, sym("character.book.closed.fill", "globe"), r.malhae, C.malhae);
-  chip(chips, sym("scope", "target"), r.psat, C.psat);
+  chip(chips, "exercise", r.exercise, C.run);
+  chip(chips, "study", r.study, C.book);
+  chip(chips, "commit", r.commit, C.git);
+  chip(chips, "malhae", r.malhae, C.malhae);
+  chip(chips, "psat", r.psat, C.psat);
   return w;
 }
 
@@ -354,6 +359,7 @@ ${rows}
 
 // 로더가 importModule로 불러 main()을 실행한다 (Scriptable 모듈은 최상위 await를 못 쓴다)
 module.exports.main = async () => {
+  await loadSprite();
   const data = await load();
   const widget = data.error ? errorWidget(data.error) : await homeWidget(data);
   if (!data.error && !data.offline) await notifySettlement(data);

@@ -1,0 +1,19 @@
+<!doctype html><html><body style="margin:0;background:#000;padding:30px;color:#fff;font-family:sans-serif">
+<div id="w" style="position:relative;width:320px;height:320px;border-radius:68px;background:#1c1c1e"></div>
+<script>
+// widget/uh-money.js와 같은 배치 계산: 링+배지 이미지는 위젯 가운데, 보상 칸은 균등 분배. 아이콘은 스프라이트를 칸 단위로 잘라 쓴다.
+const CELL=96, K=2; // K = 화면 배율(미리보기용)
+const COL={exercise:0,study:1,commit:2,malhae:3,psat:4,noSpend:0,keptLimit:1,noDelivery:2,onTime:3};
+const icon=(key,row,x,y,s)=>`<div style="position:absolute;left:${x*K}px;top:${y*K}px;width:${s*K}px;height:${s*K}px;background:url(../widget/assets/icons-v1.png) -${COL[key]*s*K}px -${row*s*K}px/${5*s*K}px ${4*s*K}px no-repeat"></div>`;
+const W=160,size=90,x0=(W-size)/2,cy=12+size/2;
+let h=`<svg style="position:absolute;left:0;top:0" width="${W*K}" height="${W*K}"><g transform="scale(${K})">
+<circle cx="${x0+size/2}" cy="${cy}" r="${(size-9)/2}" fill="none" stroke="#2c2c2e" stroke-width="9"/>
+<circle cx="${x0+size/2}" cy="${cy}" r="${(size-9)/2}" fill="none" stroke="#30d158" stroke-width="9" stroke-linecap="round" stroke-dasharray="${2*Math.PI*(size-9)/2*.6} 999" transform="rotate(-90 ${x0+size/2} ${cy})"/>
+<text x="${W/2}" y="${cy+7}" text-anchor="middle" fill="#fff" font-size="20" font-weight="700">37,500</text>
+<line x1="${W/2}" y1="0" x2="${W/2}" y2="${W}" stroke="#ff453a" stroke-width=".4" stroke-dasharray="2 2"/></g></svg>`;
+const shown=["noSpend","keptLimit","noDelivery"],s=13,g=7; let x=x0+(size-(shown.length*s+(shown.length-1)*g))/2;
+for(const k of shown){h+=icon(k,3,x,12+size+3,s);x+=s+g;}
+const keys=["exercise","study","commit","malhae","psat"],on=[1,.4,0,0,1],cw=(W-12-20)/5;
+keys.forEach((k,i)=>h+=icon(k,on[i]?0:1,16+cw*i+(cw-18)/2,12+size+18+4,18));
+document.getElementById("w").innerHTML=h;
+</script></body></html>
