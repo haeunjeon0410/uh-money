@@ -108,8 +108,8 @@ const won = (n) => Math.abs(n).toLocaleString("ko-KR");
 // 모든 위치를 좌표로 직접 정한다. 작은 위젯이 정사각형이라 S×S 그림을 그대로 채운다.
 const S = 160;
 const G = {
-  ringCy: 56, ringD: 92, ringLw: 10, // 링: 가운데 위쪽
-  badgeY: 108, badgeSize: 12, badgeGap: 8, // 업적 배지 줄
+  ringCy: 62, ringD: 108, ringLw: 10, // 링: 가운데 위쪽 (배지가 링 안으로 들어가서 더 크게)
+  badgeSize: 11, badgeGap: 7, // 링 안 숫자 아래 업적 배지
   iconY: 128, iconSize: 17, // 보상 아이콘 줄
   barY: 148, barW: 16, barH: 3, // 아이콘 아래 진행 막대
   sideMargin: 20, // 보상 줄 좌우 여백 (넓히면 아이콘이 가운데로 모인다)
@@ -164,12 +164,13 @@ function homeImage(d) {
     dc.drawTextInRect(d.offline ? "⚠︎ 오프라인" : "⚠︎ 수집 끊김", new Rect(0, top - 13, S, 12));
   }
 
-  // 업적 배지: 달성은 초록, 지키는 중은 회색, 깨졌거나 해당 없으면 숨기고 남은 것만 가운데로 모은다
+  // 업적 배지: 링 안 숫자 바로 아래. 달성은 초록, 지키는 중은 회색, 깨졌거나 해당 없으면 숨기고 남은 것만 가운데로 모은다
   const st = d.achievementsToday;
   const shown = BADGES.filter((k) => st?.[k] === "earned" || st?.[k] === "ongoing");
+  const badgeY = cy + big * 0.55 + 3;
   let bx = cx - (shown.length * G.badgeSize + (shown.length - 1) * G.badgeGap) / 2;
   for (const key of shown) {
-    dc.drawImageInRect(badgeIcon(key, st[key] === "earned"), new Rect(bx, G.badgeY, G.badgeSize, G.badgeSize));
+    dc.drawImageInRect(badgeIcon(key, st[key] === "earned"), new Rect(bx, badgeY, G.badgeSize, G.badgeSize));
     bx += G.badgeSize + G.badgeGap;
   }
 
