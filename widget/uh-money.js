@@ -13,6 +13,7 @@ const C = {
   white: Color.white(),
   gray: new Color("#8e8e93"),
   off: new Color("#48484a"),
+  dim: new Color("#8e8e93"),
   run: new Color("#ff9f0a"),
   book: new Color("#bf5af2"),
   git: new Color("#0a84ff"),
@@ -139,14 +140,14 @@ function badgeRow(w, states) {
   const shown = BADGES.filter(([key]) => states?.[key] === "earned" || states?.[key] === "ongoing");
   if (shown.length === 0) return;
   const row = w.addStack();
-  row.spacing = 5;
+  row.spacing = 6;
   row.addSpacer();
   for (const [key, name] of shown) {
     const sym = SFSymbol.named(name);
     if (!sym) continue;
     const img = row.addImage(sym.image);
-    img.imageSize = new Size(10, 10);
-    img.tintColor = states[key] === "earned" ? C.badge : C.off;
+    img.imageSize = new Size(12, 12);
+    img.tintColor = states[key] === "earned" ? C.badge : C.dim;
   }
   row.addSpacer();
 }
@@ -183,7 +184,7 @@ function chip(stack, image, reward, color) {
   const iconRow = s.addStack();
   iconRow.addSpacer();
   const img = iconRow.addImage(image);
-  img.imageSize = new Size(17, 17);
+  img.imageSize = new Size(16, 16);
   img.tintColor = pct > 0 ? color : C.off;
   iconRow.addSpacer();
   s.addSpacer(4);
@@ -248,6 +249,7 @@ async function homeWidget(d) {
   }
 
   const chips = w.addStack();
+  chips.setPadding(0, 6, 0, 6);
   const git = await githubIcon();
   const sym = (name, fallback) => (SFSymbol.named(name) ?? SFSymbol.named(fallback)).image;
   const r = d.rewardsToday;
