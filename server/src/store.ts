@@ -12,6 +12,9 @@ export interface Env {
   SALARY_ACCOUNT?: string; // "은행:계좌번호" 형식의 월급통장 (넘친 돈 빼기 토스 링크용)
   GITHUB_TOKEN?: string; // 비공개 저장소 커밋까지 읽는 읽기 전용 토큰
   GITHUB_USER: string;
+  DAZZANG_URL?: string; // 다짱 주소 (예: https://….vercel.app)
+  DAZZANG_TOKEN?: string; // 다짱의 EXTERNAL_TOKEN과 같은 값
+  DAZZANG_USER_ID?: string; // 다짱에서 내 사용자 ID
   SCHOOL_TIMETABLE?: string; // "mon=09:00,tue=10:30" 요일별 첫 수업 시작 (학교 출석 업적)
 }
 
@@ -124,6 +127,10 @@ export async function arrivalsSince(db: D1Database, since: Date): Promise<Date[]
 }
 
 // --- 운동, 커밋 (4단계에서 다짱/GitHub 동기화가 채운다) ---
+
+export async function putExerciseDays(db: D1Database, days: string[]): Promise<void> {
+  for (const day of days) await db.prepare(`INSERT INTO exercise_days (day) VALUES (?) ON CONFLICT(day) DO NOTHING`).bind(day).run();
+}
 
 export async function exerciseDaysSince(db: D1Database, sinceDay: string): Promise<Set<string>> {
   const { results } = await db.prepare(`SELECT day FROM exercise_days WHERE day >= ?`).bind(sinceDay).all<{ day: string }>();

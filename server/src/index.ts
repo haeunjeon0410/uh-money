@@ -1,5 +1,6 @@
 import { ingestNotification, widget, summary, weekView } from "./app";
 import { syncCommits } from "./github";
+import { syncExercise } from "./dazzang";
 import * as store from "./store";
 import type { Env } from "./store";
 
@@ -58,14 +59,17 @@ export async function handle(req: Request, env: Env, now = new Date()): Promise<
       return json({ ok: true });
     case "POST /sync/github": // 1시간 주기를 기다리지 않고 바로 확인할 때
       return json(await syncCommits(env, now));
+    case "POST /sync/dazzang":
+      return json(await syncExercise(env, now));
   }
   return json({ error: "not found" }, 404);
 }
 
 export default {
   fetch: (req: Request, env: Env) => handle(req, env),
-  // wrangler.toml의 cron: 매시 7분에 GitHub 커밋 동기화
+  // wrangler.toml의 cron: 매시 7분에 GitHub 커밋과 다짱 운동 인증 동기화
   scheduled: (_event: ScheduledController, env: Env, ctx: ExecutionContext) => {
-    ctx.waitUntil(syncCommits(env, new Date()));
+    const now = new Date();
+    ctx.waitUntil(Promise.allSettled([syncCommits(env, now), syncExercise(env, now)]));
   },
 };
