@@ -3,8 +3,7 @@
 export const RULES = {
   dailyBase: 5_000,
   weeklyBase: 35_000, // dailyBase × 7. 매주 케이뱅크로 넣는 기본금
-  firstWeekFunding: 75_000, // 첫 주만 75,000원으로 시작
-  savingsBaseline: 75_000, // 주간 저축 = 75,000 − 그 주 지출
+  firstWeekFunding: 70_000, // 첫 주만 70,000원으로 시작
 
   // 매일 보상 — "내가 한 일". 합계는 하루 dailyRewardMax까지
   dailyRewardMax: 10_000,
@@ -24,8 +23,6 @@ export const RULES = {
   onTime: 500, // 학교에 첫 수업 시작 전 도착
   onTimeGraceMinutes: 0, // 첫 수업 시작 후 몇 분까지 제시간으로 칠지. 정각까지만 인정하고, 실제 감지 지연을 보고 늘린다
   noDelivery: 500, // 배달 결제 0건
-
-  weeklyRewardMax: 40_000, // 한 주 보상 상한 → 다음 주 예산은 최대 75,000원
 
   allowanceRounding: 100, // 오늘 쓸 돈은 100원 단위 내림
 } as const;

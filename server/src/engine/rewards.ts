@@ -54,9 +54,9 @@ export function rewardFor(a: DayActivity, ach: DayAchievements = NO_ACHIEVEMENTS
   return { exercise, study, commit, malhae, psat, daily, achievements, total };
 }
 
-// 한 주 보상 합계. 주간 상한 때문에 다음 주 예산은 최대 35,000 + 40,000 = 75,000원
-export function weekRewardTotal(days: DayReward[], rules: Rules = RULES): number {
-  return Math.min(days.reduce((sum, d) => sum + d.total, 0), rules.weeklyRewardMax);
+// 한 주 보상 합계. 주간 상한은 없고, 하루 매일 보상 상한(dailyRewardMax)만 있다
+export function weekRewardTotal(days: DayReward[]): number {
+  return days.reduce((sum, d) => sum + d.total, 0);
 }
 
 // 켜고 끈 세션(공부 집중 모드, 말해보카)을 날짜별 분으로 바꾼다.

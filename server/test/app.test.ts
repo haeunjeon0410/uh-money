@@ -30,13 +30,13 @@ describe("인증", () => {
 });
 
 describe("알림 수집 → 위젯", () => {
-  it("첫 주 월요일: 75,000 ÷ 7 = 10,700원, 결제하면 그만큼 줄어든다", async () => {
+  it("첫 주 월요일: 70,000 ÷ 7 = 10,000원, 결제하면 그만큼 줄어든다", async () => {
     let w = await call("GET", "/widget", kst("2026-10-05T09:00:00"), "p-token");
-    expect(w.body.allowance).toBe(10_700);
+    expect(w.body.allowance).toBe(10_000);
 
     await notify("2026-10-05T12:30:00", "승인 5,600원\n버거집\n카드(5678) | 10/05 12:30\n출금가능액 69,400원");
     w = await call("GET", "/widget", kst("2026-10-05T13:00:00"), "p-token");
-    expect(w.body).toMatchObject({ allowance: 10_700, spentToday: 5_600, remaining: 5_100, stale: false });
+    expect(w.body).toMatchObject({ allowance: 10_000, spentToday: 5_600, remaining: 4_400, stale: false });
   });
 
   it("같은 알림이 두 번 와도 한 번만 차감", async () => {
@@ -93,10 +93,10 @@ describe("위젯 정산 안내", () => {
     env.KBANK_ACCOUNT = "100200300400";
     await notify("2026-10-05T07:00:00", "출금 1,000원\n편의점 | 입출금통장(1234)\n잔액 50,080원");
     let w = await call("GET", "/widget", kst("2026-10-05T08:00:00"), "p-token");
-    expect(w.body.settlement).toMatchObject({ action: "FILL", amount: 23_920 }); // 75,000 − 1,000 − 50,080
-    expect(w.body.settlement.url).toContain("amount=23920");
+    expect(w.body.settlement).toMatchObject({ action: "FILL", amount: 18_920 }); // 70,000 − 1,000 − 50,080
+    expect(w.body.settlement.url).toContain("amount=18920");
 
-    await notify("2026-10-05T09:00:00", "입금 23,920원\n홍길동 | 입출금통장(1234)\n잔액 74,000원");
+    await notify("2026-10-05T09:00:00", "입금 18,920원\n홍길동 | 입출금통장(1234)\n잔액 69,000원");
     w = await call("GET", "/widget", kst("2026-10-05T09:05:00"), "p-token");
     expect(w.body.settlement).toBeNull();
   });

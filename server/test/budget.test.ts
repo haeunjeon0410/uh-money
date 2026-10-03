@@ -5,8 +5,8 @@ const kst = (s: string) => new Date(`${s}+09:00`);
 const spend = (at: string, amount: number): LedgerTx => ({ at: kst(at), amount, effect: "SPEND" });
 
 describe("주간 예산", () => {
-  it("첫 주는 75,000원, 그다음은 35,000원 + 지난주 보상", () => {
-    expect(weekBudget({ isFirstWeek: true, prevWeekRewards: 0 })).toBe(75_000);
+  it("첫 주는 70,000원, 그다음은 35,000원 + 지난주 보상", () => {
+    expect(weekBudget({ isFirstWeek: true, prevWeekRewards: 0 })).toBe(70_000);
     expect(weekBudget({ isFirstWeek: false, prevWeekRewards: 23_000 })).toBe(58_000);
   });
 });
@@ -43,9 +43,11 @@ describe("오늘 쓸 돈 = 잔액 ÷ 남은 날", () => {
 });
 
 describe("주간 마감과 정산", () => {
-  it("저축 = 75,000 − 그 주 지출", () => {
+  it("저축 = 그 주 예산 − 지출 (예산이 늘어도 안 쓴 돈만 저축)", () => {
     const txs = [spend("2026-10-06T12:00:00", 60_000)];
-    expect(weekSavings(txs, "2026-10-05")).toBe(15_000);
+    expect(weekSavings(txs, "2026-10-05", 70_000)).toBe(10_000);
+    expect(weekSavings(txs, "2026-10-05", 83_000)).toBe(23_000);
+    expect(weekSavings(txs, "2026-10-05", 35_000)).toBe(-25_000); // 예산보다 더 쓰면 마이너스로 그대로 기록
   });
 
   it("정산 이체 = 다음 주 예산 − 케이뱅크 잔액, 음수면 저축으로 뺀다", () => {

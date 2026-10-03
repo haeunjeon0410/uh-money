@@ -107,7 +107,7 @@ async function frozenRewards(env: Env, week: string, now: Date): Promise<number>
   const before = addDays(week, -7);
   const prevFreeze = await store.getFreeze(env.DB, before);
   if (prevFreeze) late = Math.max(0, (await weekRewards(env, before, now)) - prevFreeze.earned_at_freeze);
-  const amount = Math.min(earned + late, RULES.weeklyRewardMax);
+  const amount = earned + late;
   await store.putFreeze(env.DB, week, amount, earned, now);
   return amount;
 }
@@ -183,7 +183,6 @@ export async function weekView(env: Env, now: Date) {
     week,
     today,
     rewards,
-    rewardsMax: RULES.weeklyRewardMax,
     nextBudget: RULES.weeklyBase + rewards,
     categories: {
       exercise: { amount: sum((r) => r.exercise), days: count((r) => r.exercise) },
@@ -215,7 +214,7 @@ export async function summary(env: Env, now: Date) {
     spent,
     left: budget - spent,
     rewardsThisWeek: rewardsSoFar,
-    savingsIfClosedNow: weekSavings(txs, week),
+    savingsIfClosedNow: weekSavings(txs, week, budget),
     kbankBalance: balance,
     // 다음 월요일에 맞춰 넣을 금액 (이번 주 보상이 그대로라면)
     nextSettlementPreview: balance === null ? null : settlementTransfer(RULES.weeklyBase + rewardsSoFar, balance),

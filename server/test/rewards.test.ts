@@ -36,13 +36,13 @@ describe("업적은 하루 상한과 별개", () => {
   });
 });
 
-describe("주간 보상 상한", () => {
-  it("한 주 합계는 40,000원에서 멈춘다 (다음 주 예산 최대 75,000원)", () => {
+describe("주간 보상", () => {
+  it("주간 상한은 없고 하루 보상을 그대로 합친다", () => {
     const max = rewardFor(
       { exercised: true, studyMinutes: 400, commits: 25, malhaeMinutes: 30, psat: true },
       { noSpend: true, keptLimit: true, onTime: true, noDelivery: true },
     );
-    expect(weekRewardTotal(Array(7).fill(max))).toBe(40_000);
+    expect(weekRewardTotal(Array(7).fill(max))).toBe(14_500 * 7);
     expect(weekRewardTotal([rewardFor({ ...none, exercised: true })])).toBe(3_000);
   });
 });

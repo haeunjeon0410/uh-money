@@ -52,9 +52,9 @@ export function todayView(now: Date, budget: number, txs: LedgerTx[], rules: Rul
   return { allowance, spentToday, remaining: allowance - spentToday };
 }
 
-// 주간 마감 시 확정되는 저축 (실제 돈은 월급통장에 남아 있다)
-export function weekSavings(txs: LedgerTx[], week: string, rules: Rules = RULES): number {
-  return rules.savingsBaseline - spentInWeek(txs, week);
+// 주간 마감 시 확정되는 저축 = 그 주 예산 − 지출. 예산이 늘어도 실제로 안 쓴 돈만 저축으로 센다 (실제 돈은 월급통장에 남아 있다)
+export function weekSavings(txs: LedgerTx[], week: string, budget: number): number {
+  return budget - spentInWeek(txs, week);
 }
 
 // 월요일 정산 이체 금액. 양수면 월급통장 → 케이뱅크, 음수면 케이뱅크 → 저축으로 빼야 한다.

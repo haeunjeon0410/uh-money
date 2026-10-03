@@ -295,7 +295,8 @@ async function weekScreen() {
   req.headers = { Authorization: `Bearer ${t}` };
   const v = await req.loadJSON();
 
-  const pct = (n) => Math.min(100, (n / v.rewardsMax) * 100);
+  const total = Math.max(1, v.rewards);
+  const pct = (n) => (n / total) * 100; // 막대는 이번 주 보상 중 항목별 비중
   const bar = CATEGORIES.map(([k, , color]) => `<div style="width:${pct(v.categories[k].amount)}%;background:${color}"></div>`).join("");
   const rows = CATEGORIES.map(([k, label, color, unit]) => {
     const c = v.categories[k];
@@ -329,7 +330,7 @@ body{margin:0;background:#000;color:#fff;font-family:"Wanted Sans",-apple-system
 .spent b{color:#fff;font-weight:600}
 </style></head><body>
 <div class="label">이번 주 모은 보상</div>
-<div class="big">₩${won(v.rewards)} <small>/ ${won(v.rewardsMax)}</small></div>
+<div class="big">₩${won(v.rewards)}</div>
 <div class="bar">${bar}</div>
 <div class="next">다음 주 예산 ₩${won(v.nextBudget)}</div>
 ${rows}
