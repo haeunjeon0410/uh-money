@@ -162,6 +162,39 @@ export async function widget(env: Env, now: Date) {
   };
 }
 
+// 위젯을 누르면 열리는 주간 모아보기. 이번 주 보상이 그대로 다음 주 예산이 된다
+export async function weekView(env: Env, now: Date) {
+  const week = weekKey(now);
+  const today = dayKey(now);
+  const [days, txs] = await Promise.all([
+    dayRewards(env, week, week, addDays(week, 6), now),
+    store.ledgerSince(env.DB, dayStart(week)),
+  ]);
+  const list = [...days.entries()];
+  const sum = (pick: (r: DayReward) => number) => list.reduce((s, [, r]) => s + pick(r), 0);
+  const count = (pick: (r: DayReward) => number) => list.filter(([, r]) => pick(r) > 0).length;
+  const achievements = (r: DayReward) =>
+    r.achievements.noSpend + r.achievements.keptLimit + r.achievements.onTime + r.achievements.noDelivery;
+  const rewards = weekRewardTotal(list.map(([, r]) => r));
+  return {
+    week,
+    today,
+    rewards,
+    rewardsMax: RULES.weeklyRewardMax,
+    nextBudget: RULES.weeklyBase + rewards,
+    categories: {
+      exercise: { amount: sum((r) => r.exercise), days: count((r) => r.exercise) },
+      study: { amount: sum((r) => r.study), days: count((r) => r.study) },
+      commit: { amount: sum((r) => r.commit), days: count((r) => r.commit) },
+      malhae: { amount: sum((r) => r.malhae), days: count((r) => r.malhae) },
+      psat: { amount: sum((r) => r.psat), days: count((r) => r.psat) },
+      achievements: { amount: sum(achievements), days: count(achievements) },
+    },
+    days: list.map(([day, r]) => ({ day, total: r.total })),
+    spent: spentInWeek(txs, week),
+  };
+}
+
 // 확인·디버그용 요약. 월요일 정산 금액도 여기서 본다
 export async function summary(env: Env, now: Date) {
   const week = weekKey(now);

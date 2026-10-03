@@ -113,3 +113,17 @@ describe("말해보카·학교 도착", () => {
     expect(w.body.achievementsToday).toEqual({ noSpend: "ongoing", keptLimit: "ongoing", noDelivery: "ongoing", onTime: "earned" });
   });
 });
+
+describe("주간 모아보기", () => {
+  it("항목별 합계와 다음 주 예산", async () => {
+    await call("POST", "/study/start", kst("2026-10-06T14:00:00"), "p-token");
+    await call("POST", "/study/stop", kst("2026-10-06T15:00:00"), "p-token");
+    const v = await call("GET", "/week", kst("2026-10-06T16:00:00"), "p-token");
+    // 월요일: 지출 없음 → 무지출 3,000 + 한도 500 + 배달 안 함 500, 화요일: 공부 1시간 1,000 (오늘이라 돈 업적은 아직)
+    expect(v.body.categories.study).toEqual({ amount: 1_000, days: 1 });
+    expect(v.body.categories.achievements).toEqual({ amount: 4_000, days: 1 });
+    expect(v.body.rewards).toBe(5_000);
+    expect(v.body.nextBudget).toBe(40_000);
+    expect(v.body.days).toHaveLength(7);
+  });
+});

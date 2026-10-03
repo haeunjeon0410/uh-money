@@ -228,6 +228,9 @@ async function homeWidget(d) {
   badgeRow(w, d.achievementsToday);
   w.addSpacer(6);
 
+  // 위젯을 누르면 이 스크립트를 앱에서 실행해 주간 모아보기를 연다
+  w.url = `scriptable:///run/${encodeURIComponent(Script.name())}`;
+
   // 정산이 필요하면 보상 줄 대신 채우기/빼기 안내를 보여주고, 위젯을 누르면 토스 송금 화면을 연다
   if (d.settlement) {
     if (d.settlement.url) w.url = d.settlement.url;
@@ -281,6 +284,69 @@ async function notifySettlement(d) {
   Keychain.set(key, "1");
 }
 
+// --- 주간 모아보기 (위젯을 눌러 앱에서 실행될 때) ---
+
+const CATEGORIES = [
+  ["exercise", "운동", "#ff9f0a", (c) => `${c.days}회`],
+  ["study", "공부", "#bf5af2", (c) => `${c.amount / 1000}시간`],
+  ["commit", "커밋", "#0a84ff", (c) => `${c.amount / 100}회`],
+  ["malhae", "말해보카", "#64d2ff", (c) => `${c.days}일`],
+  ["psat", "피셋", "#ffd60a", (c) => `${c.days}일`],
+  ["achievements", "업적", "#30d158", (c) => `${c.days}일`],
+];
+const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
+
+async function weekScreen() {
+  const t = await token();
+  if (!t) return;
+  const req = new Request(`${SERVER}/week`);
+  req.headers = { Authorization: `Bearer ${t}` };
+  const v = await req.loadJSON();
+
+  const pct = (n) => Math.min(100, (n / v.rewardsMax) * 100);
+  const bar = CATEGORIES.map(([k, , color]) => `<div style="width:${pct(v.categories[k].amount)}%;background:${color}"></div>`).join("");
+  const rows = CATEGORIES.map(([k, label, color, unit]) => {
+    const c = v.categories[k];
+    const on = c.amount > 0;
+    return `<div class="row${on ? "" : " off"}"><span><i style="background:${on ? color : "#48484a"}"></i>${label} ${on ? unit(c) : ""}</span><span>${won(c.amount)}</span></div>`;
+  }).join("");
+  const peak = Math.max(10_000, ...v.days.map((d) => d.total));
+  const days = v.days.map((d, i) => {
+    const future = d.day > v.today;
+    const h = future ? 0 : Math.max(3, (d.total / peak) * 56);
+    return `<div class="day"><div class="col" style="height:${h}px;background:${d.day === v.today ? "#30d158" : "#3a3a3c"}"></div><span${d.day === v.today ? ' class="now"' : ""}>${WEEKDAYS[i]}</span></div>`;
+  }).join("");
+
+  const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+
+body{margin:0;background:#000;color:#fff;font-family:"Wanted Sans",-apple-system,sans-serif;padding:28px 22px}
+.label{font-size:15px;color:#8e8e93}
+.big{font-size:38px;font-weight:700;margin:4px 0 12px}
+.big small{font-size:16px;color:#8e8e93;font-weight:500}
+.bar{height:10px;border-radius:5px;background:#2c2c2e;overflow:hidden;display:flex}
+.next{font-size:16px;color:#30d158;margin:14px 0 26px}
+.row{display:flex;justify-content:space-between;font-size:16px;padding:9px 0;border-bottom:0.5px solid #1c1c1e}
+.row i{display:inline-block;width:10px;height:10px;border-radius:5px;margin-right:10px}
+.off{color:#48484a}
+.days{display:flex;justify-content:space-between;align-items:flex-end;height:80px;margin:28px 4px 0}
+.day{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:#8e8e93}
+.col{width:22px;border-radius:4px}
+.now{color:#fff}
+.spent{display:flex;justify-content:space-between;font-size:16px;color:#8e8e93;margin-top:26px;padding-top:14px;border-top:0.5px solid #2c2c2e}
+.spent b{color:#fff;font-weight:600}
+</style></head><body>
+<div class="label">이번 주 모은 보상</div>
+<div class="big">₩${won(v.rewards)} <small>/ ${won(v.rewardsMax)}</small></div>
+<div class="bar">${bar}</div>
+<div class="next">다음 주 예산 ₩${won(v.nextBudget)}</div>
+${rows}
+<div class="days">${days}</div>
+<div class="spent"><span>이번 주 지출</span><b>₩${won(v.spent)}</b></div>
+</body></html>`;
+  await WebView.loadHTML(html, null, undefined, true);
+}
+
 // 로더가 importModule로 불러 main()을 실행한다 (Scriptable 모듈은 최상위 await를 못 쓴다)
 module.exports.main = async () => {
   const data = await load();
@@ -289,6 +355,6 @@ module.exports.main = async () => {
   widget.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
 
   if (config.runsInWidget) Script.setWidget(widget);
-  else await widget.presentSmall();
+  else await weekScreen();
   Script.complete();
 };

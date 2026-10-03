@@ -1,4 +1,4 @@
-import { ingestNotification, widget, summary } from "./app";
+import { ingestNotification, widget, summary, weekView } from "./app";
 import { syncCommits } from "./github";
 import * as store from "./store";
 import type { Env } from "./store";
@@ -36,6 +36,8 @@ export async function handle(req: Request, env: Env, now = new Date()): Promise<
   switch (route) {
     case "GET /widget":
       return json(await widget(env, now));
+    case "GET /week":
+      return json(await weekView(env, now));
     case "GET /summary":
       return json(await summary(env, now));
     // 아이폰 단축어 자동화: 공부 집중 모드 켜기/끄기, 말해보카 열기/닫기, 학교 도착
