@@ -25,13 +25,18 @@ export function spentInWeek(txs: LedgerTx[], week: string): number {
 // 이번 주에 쓸 수 있는 돈 = 월요일에 케이뱅크에 맞춰 넣는 금액
 // 첫 주만 75,000원, 그다음부터는 기본금 35,000원 + 지난주 보상
 export function weekBudget(opts: { isFirstWeek: boolean; prevWeekRewards: number }, rules: Rules = RULES): number {
-  return opts.isFirstWeek ? rules.firstWeekFunding : rules.weeklyBase + opts.prevWeekRewards;
+  return opts.isFirstWeek ? rules.firstWeekFunding : nextWeekBudget(opts.prevWeekRewards, rules);
 }
 
 export interface TodayView {
   allowance: number; // 오늘 06:00에 정해진 오늘 쓸 돈
   spentToday: number;
   remaining: number; // 위젯 가운데 숫자. 음수면 초과
+}
+
+// 다음 주 예산 = 기본금 + 지난주 보상, 단 weeklyBudgetMax(10만 원)를 넘지 않는다
+export function nextWeekBudget(rewards: number, rules: Rules = RULES): number {
+  return Math.min(rules.weeklyBase + rewards, rules.weeklyBudgetMax);
 }
 
 // 오늘 쓸 돈 = (오늘 시작 시점 주간 잔액) ÷ (오늘 포함 남은 날수), 100원 단위 내림.

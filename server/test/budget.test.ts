@@ -8,6 +8,8 @@ describe("주간 예산", () => {
   it("첫 주는 70,000원, 그다음은 35,000원 + 지난주 보상", () => {
     expect(weekBudget({ isFirstWeek: true, prevWeekRewards: 0 })).toBe(70_000);
     expect(weekBudget({ isFirstWeek: false, prevWeekRewards: 23_000 })).toBe(58_000);
+    expect(weekBudget({ isFirstWeek: false, prevWeekRewards: 65_000 })).toBe(100_000);
+    expect(weekBudget({ isFirstWeek: false, prevWeekRewards: 90_000 })).toBe(100_000); // 10만 원에서 멈춘다
   });
 });
 

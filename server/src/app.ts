@@ -2,7 +2,7 @@ import { parseKbank } from "./ingest/kbank";
 import { classify, checkGap } from "./ingest/classify";
 import { rewardFor, sessionMinutesByDay, weekRewardTotal, type DayReward } from "./engine/rewards";
 import { moneyAchievements, onTime, parseTimetable, isDelivery, classDeadline } from "./engine/achievements";
-import { todayView, weekBudget, spentInWeek, weekSavings, settlementTransfer } from "./engine/budget";
+import { todayView, weekBudget, nextWeekBudget, spentInWeek, weekSavings, settlementTransfer } from "./engine/budget";
 import { dayKey, weekKey, addDays, dayStart } from "./engine/time";
 import { RULES } from "./engine/rules";
 import { settlementFor } from "./settlement";
@@ -183,7 +183,7 @@ export async function weekView(env: Env, now: Date) {
     week,
     today,
     rewards,
-    nextBudget: RULES.weeklyBase + rewards,
+    nextBudget: nextWeekBudget(rewards),
     categories: {
       exercise: { amount: sum((r) => r.exercise), days: count((r) => r.exercise) },
       study: { amount: sum((r) => r.study), days: count((r) => r.study) },
@@ -217,7 +217,7 @@ export async function summary(env: Env, now: Date) {
     savingsIfClosedNow: weekSavings(txs, week, budget),
     kbankBalance: balance,
     // 다음 월요일에 맞춰 넣을 금액 (이번 주 보상이 그대로라면)
-    nextSettlementPreview: balance === null ? null : settlementTransfer(RULES.weeklyBase + rewardsSoFar, balance),
+    nextSettlementPreview: balance === null ? null : settlementTransfer(nextWeekBudget(rewardsSoFar), balance),
     unknownNotifications: unknown,
   };
 }

@@ -4,6 +4,7 @@ export const RULES = {
   dailyBase: 5_000,
   weeklyBase: 35_000, // dailyBase × 7. 매주 케이뱅크로 넣는 기본금
   firstWeekFunding: 70_000, // 첫 주만 70,000원으로 시작
+  weeklyBudgetMax: 100_000, // 갓생을 아무리 살아도 한 주 예산은 10만 원에서 멈춘다
 
   // 매일 보상 — "내가 한 일". 합계는 하루 dailyRewardMax까지
   dailyRewardMax: 10_000,
