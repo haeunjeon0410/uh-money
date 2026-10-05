@@ -61,7 +61,8 @@ export function weekRewardTotal(days: DayReward[]): number {
   return days.reduce((sum, d) => sum + d.total, 0);
 }
 
-// 켜고 끈 세션(공부 집중 모드, 말해보카)을 날짜별 분으로 바꾼다.
+// 켜고 끈 세션(공부 집중 모드, 말해보카)을 날짜별 분으로 바꾼다. 분은 소수까지 합산하고, 보상 계산에서 하루 합계 기준으로 내린다
+// (세션마다 내림하면 잠깐씩 여러 번 켠 시간이 사라진다).
 // 세션은 시작한 날에 귀속되고, 끄는 걸 잊었으면 그날 06:00 경계에서 자동 종료한다.
 export function sessionMinutesByDay(
   sessions: StudySession[],
@@ -74,8 +75,8 @@ export function sessionMinutesByDay(
     const dayEnd = dayStart(addDays(key, 1));
     const rawEnd = s.end ?? now;
     const end = rawEnd.getTime() > dayEnd.getTime() ? dayEnd : rawEnd;
-    const minutes = Math.floor((end.getTime() - s.start.getTime()) / 60_000);
-    if (minutes < minSessionMinutes) continue;
+    const minutes = (end.getTime() - s.start.getTime()) / 60_000;
+    if (minutes < minSessionMinutes || minutes <= 0) continue;
     byDay.set(key, (byDay.get(key) ?? 0) + minutes);
   }
   return byDay;

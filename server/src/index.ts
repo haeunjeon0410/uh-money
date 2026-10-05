@@ -22,6 +22,7 @@ export async function handle(req: Request, env: Env, now = new Date()): Promise<
     const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
     const device = typeof body?.device === "string" ? body.device : "collector";
     await store.beat(env.DB, device, now);
+    await store.logBeat(env.DB, device, now);
     if (route === "POST /heartbeat") return json({ ok: true });
 
     if (typeof body?.postedAt !== "number" || typeof body.text !== "string") return json({ error: "bad request" }, 400);

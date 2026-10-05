@@ -184,6 +184,12 @@ export async function beat(db: D1Database, device: string, now: Date): Promise<v
     .run();
 }
 
+// 신호 기록 7일치만 남긴다
+export async function logBeat(db: D1Database, device: string, now: Date): Promise<void> {
+  await db.prepare(`INSERT INTO heartbeat_log (device, at) VALUES (?, ?)`).bind(device, now.toISOString()).run();
+  await db.prepare(`DELETE FROM heartbeat_log WHERE at < ?`).bind(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()).run();
+}
+
 export async function lastSeen(db: D1Database): Promise<Date | null> {
   const row = await db.prepare(`SELECT MAX(last_seen) AS t FROM heartbeats`).first<{ t: string | null }>();
   return row?.t ? new Date(row.t) : null;

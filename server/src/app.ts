@@ -66,7 +66,7 @@ async function dayRewards(env: Env, week: string, fromDay: string, toDay: string
     store.arrivalsSince(env.DB, "CAFE", since),
   ]);
   const studyMin = sessionMinutesByDay(study, now, RULES.studyMinSessionMinutes);
-  const malhaeMin = sessionMinutesByDay(malhae, now, 1);
+  const malhaeMin = sessionMinutesByDay(malhae, now, 0); // 말해보카는 짧은 세션도 모두 합친다
   const commitsByDay = new Map<string, number>();
   for (const t of commits) commitsByDay.set(dayKey(t), (commitsByDay.get(dayKey(t)) ?? 0) + 1);
   const timetable = parseTimetable(env.SCHOOL_TIMETABLE);

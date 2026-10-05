@@ -46,25 +46,39 @@ async function token() {
   return t || null;
 }
 
-// 서버에서 오늘 숫자를 받는다. 실패하면 마지막으로 받은 값을 쓰고 offline 표시
+// 서버에서 오늘 숫자를 받는다. 밖에서 데이터가 잠깐 끊기는 일이 잦아서 한 번 더 시도하고,
+// 그래도 실패하면 마지막으로 받은 값을 쓴다. 그 값이 30분 안이면 경고를 띄우지 않는다 (오래됐을 때만 offline 표시)
+const FRESH_MS = 30 * 60 * 1000;
+
+async function fetchOnce(t) {
+  const req = new Request(`${SERVER}/widget`);
+  req.headers = { Authorization: `Bearer ${t}` };
+  req.timeoutInterval = 12;
+  const data = await req.loadJSON();
+  return { data, status: req.response.statusCode };
+}
+
 async function load() {
   const t = await token();
   if (!t) return { error: "토큰을 넣으려면 Scriptable에서 한 번 실행하세요" };
-  try {
-    const req = new Request(`${SERVER}/widget`);
-    req.headers = { Authorization: `Bearer ${t}` };
-    req.timeoutInterval = 10;
-    const data = await req.loadJSON();
-    if (req.response.statusCode === 401) {
-      Keychain.remove(TOKEN_KEY);
-      return { error: "토큰이 틀렸어요. Scriptable에서 다시 실행하세요" };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { data, status } = await fetchOnce(t);
+      if (status === 401) {
+        Keychain.remove(TOKEN_KEY);
+        return { error: "토큰이 틀렸어요. Scriptable에서 다시 실행하세요" };
+      }
+      fm.writeString(cachePath, JSON.stringify(data));
+      return data;
+    } catch (e) {
+      if (attempt === 0) await new Promise((r) => Timer.schedule(1500, false, r));
     }
-    fm.writeString(cachePath, JSON.stringify(data));
-    return data;
-  } catch (e) {
-    if (fm.fileExists(cachePath)) return { ...JSON.parse(fm.readString(cachePath)), offline: true };
-    return { error: "서버에 연결할 수 없어요" };
   }
+  if (fm.fileExists(cachePath)) {
+    const age = Date.now() - fm.modificationDate(cachePath).getTime();
+    return { ...JSON.parse(fm.readString(cachePath)), offline: age > FRESH_MS };
+  }
+  return { error: "서버에 연결할 수 없어요" };
 }
 
 // 아이콘은 시안과 똑같은 모양으로 미리 만든 이미지(widget/assets/icons-v1.png)를 쓴다.

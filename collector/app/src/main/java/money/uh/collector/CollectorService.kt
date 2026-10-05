@@ -1,6 +1,8 @@
 package money.uh.collector
 
 import android.app.Notification
+import android.net.ConnectivityManager
+import android.net.Network
 import android.os.Handler
 import android.os.HandlerThread
 import android.service.notification.NotificationListenerService
@@ -11,11 +13,13 @@ class CollectorService : NotificationListenerService() {
     private lateinit var worker: Handler
     private lateinit var outbox: Outbox
 
-    private val beat = object : Runnable {
-        override fun run() {
-            outbox.heartbeat()
-            outbox.flush()
-            worker.postDelayed(this, HEARTBEAT_MS)
+    // 네트워크가 끊겼다가 돌아오는 순간 바로 대기열을 보낸다 (밖에서 데이터가 오락가락할 때)
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            worker.post {
+                outbox.heartbeat()
+                outbox.flush()
+            }
         }
     }
 
@@ -26,12 +30,15 @@ class CollectorService : NotificationListenerService() {
     }
 
     override fun onListenerConnected() {
-        worker.removeCallbacks(beat)
-        worker.post(beat)
+        val cm = getSystemService(ConnectivityManager::class.java)
+        runCatching { cm.unregisterNetworkCallback(networkCallback) }
+        cm.registerDefaultNetworkCallback(networkCallback)
+        HeartbeatReceiver.schedule(this)
+        HeartbeatReceiver.run(this)
     }
 
     override fun onListenerDisconnected() {
-        worker.removeCallbacks(beat)
+        runCatching { getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(networkCallback) }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -50,8 +57,4 @@ class CollectorService : NotificationListenerService() {
 
     private fun isKbank(pkg: String, title: String) =
         pkg.contains("kbank", ignoreCase = true) || title.contains("케이뱅크")
-
-    companion object {
-        private const val HEARTBEAT_MS = 30 * 60 * 1000L
-    }
 }

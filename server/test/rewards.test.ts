@@ -53,6 +53,18 @@ describe("켜고 끈 세션 → 날짜별 분", () => {
     expect(m.get("2026-10-05")).toBe(7 * 60);
   });
 
+  it("짧은 세션이 여러 번이면 초 단위로 합친 뒤 하루 합계로 판단한다 (세션마다 내림하지 않는다)", () => {
+    const parts = [30, 30, 30, 30].map((sec, i) => ({
+      start: kst(`2026-10-05T10:0${i}:00`),
+      end: new Date(kst(`2026-10-05T10:0${i}:00`).getTime() + sec * 1000),
+    }));
+    const m = sessionMinutesByDay(parts, kst("2026-10-05T12:00:00"), 0);
+    expect(m.get("2026-10-05")).toBeCloseTo(2, 5);
+    // 14분 55초 → 15분 미만, 15분 정각 → 인정
+    expect(rewardFor({ ...none, malhaeMinutes: 14 + 55 / 60 }).malhae).toBe(0);
+    expect(rewardFor({ ...none, malhaeMinutes: 15 }).malhae).toBe(500);
+  });
+
   it("최소 시간보다 짧으면 버린다", () => {
     const m = sessionMinutesByDay(
       [{ start: kst("2026-10-05T10:00:00"), end: kst("2026-10-05T10:05:00") }],
