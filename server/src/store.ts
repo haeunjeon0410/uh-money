@@ -119,12 +119,14 @@ export async function psatDaysSince(db: D1Database, sinceDay: string): Promise<S
   return new Set(results.map((r) => r.day));
 }
 
-export async function insertArrival(db: D1Database, at: Date): Promise<void> {
-  await db.prepare(`INSERT INTO arrivals (at) VALUES (?)`).bind(at.toISOString()).run();
+export type ArrivalKind = "SCHOOL" | "CAFE";
+
+export async function insertArrival(db: D1Database, kind: ArrivalKind, at: Date): Promise<void> {
+  await db.prepare(`INSERT INTO arrivals (at, kind) VALUES (?, ?)`).bind(at.toISOString(), kind).run();
 }
 
-export async function arrivalsSince(db: D1Database, since: Date): Promise<Date[]> {
-  const { results } = await db.prepare(`SELECT at FROM arrivals WHERE at >= ?`).bind(since.toISOString()).all<{ at: string }>();
+export async function arrivalsSince(db: D1Database, kind: ArrivalKind, since: Date): Promise<Date[]> {
+  const { results } = await db.prepare(`SELECT at FROM arrivals WHERE at >= ? AND kind = ?`).bind(since.toISOString(), kind).all<{ at: string }>();
   return results.map((r) => new Date(r.at));
 }
 

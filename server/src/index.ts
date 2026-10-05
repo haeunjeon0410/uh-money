@@ -56,7 +56,10 @@ export async function handle(req: Request, env: Env, now = new Date()): Promise<
       await store.stopSession(env.DB, "MALHAE", now);
       return json({ ok: true });
     case "POST /arrive/school":
-      await store.insertArrival(env.DB, now);
+      await store.insertArrival(env.DB, "SCHOOL", now);
+      return json({ ok: true });
+    case "POST /arrive/cafe": // 스터디카페 와이파이에 연결될 때
+      await store.insertArrival(env.DB, "CAFE", now);
       return json({ ok: true });
     case "POST /sync/github": // 1시간 주기를 기다리지 않고 바로 확인할 때
       return json(await syncCommits(env, now));

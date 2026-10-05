@@ -54,7 +54,7 @@ function ownerNames(env: Env): string[] {
 // fromDay~toDay(같은 주) 하루하루의 매일 보상과 업적. 돈 업적은 하루가 끝난 날만 확정한다
 async function dayRewards(env: Env, week: string, fromDay: string, toDay: string, now: Date): Promise<Map<string, DayReward>> {
   const since = dayStart(fromDay);
-  const [budget, txs, exercise, study, malhae, commits, psat, arrivals] = await Promise.all([
+  const [budget, txs, exercise, study, malhae, commits, psat, arrivals, cafeArrivals] = await Promise.all([
     budgetFor(env, week, now),
     store.ledgerSince(env.DB, dayStart(week)),
     store.exerciseDaysSince(env.DB, fromDay),
@@ -62,7 +62,8 @@ async function dayRewards(env: Env, week: string, fromDay: string, toDay: string
     store.sessionsSince(env.DB, "MALHAE", since),
     store.commitTimesSince(env.DB, since),
     store.psatDaysSince(env.DB, fromDay),
-    store.arrivalsSince(env.DB, since),
+    store.arrivalsSince(env.DB, "SCHOOL", since),
+    store.arrivalsSince(env.DB, "CAFE", since),
   ]);
   const studyMin = sessionMinutesByDay(study, now, RULES.studyMinSessionMinutes);
   const malhaeMin = sessionMinutesByDay(malhae, now, 1);
@@ -74,6 +75,7 @@ async function dayRewards(env: Env, week: string, fromDay: string, toDay: string
   const out = new Map<string, DayReward>();
   for (let d = fromDay; d <= toDay; d = addDays(d, 1)) {
     const money = d < today ? moneyAchievements(d, budget, txs) : { noSpend: false, keptLimit: false, noDelivery: false };
+    const cafe = cafeArrivals.some((a) => dayKey(a) === d);
     out.set(
       d,
       rewardFor(
@@ -84,7 +86,7 @@ async function dayRewards(env: Env, week: string, fromDay: string, toDay: string
           malhaeMinutes: malhaeMin.get(d) ?? 0,
           psat: psat.has(d),
         },
-        { ...money, onTime: onTime(d, arrivals, timetable) },
+        { ...money, onTime: onTime(d, arrivals, timetable), cafe },
       ),
     );
   }
@@ -157,6 +159,7 @@ export async function widget(env: Env, now: Date) {
       keptLimit: state(view.remaining >= 0),
       noDelivery: state(!todaySpends.some((t) => isDelivery(t.counterparty ?? ""))),
       onTime: onTimeState,
+      cafe: r.achievements.cafe > 0 ? "earned" : "none",
     },
     stale: !seen || now.getTime() - seen.getTime() > STALE_AFTER_MS,
     // 케이뱅크 잔액이 이번 주에 쓸 돈과 다르면 채우기/빼기 안내 (위젯이 알림과 토스 링크로 띄운다)
@@ -177,7 +180,7 @@ export async function weekView(env: Env, now: Date) {
   const sum = (pick: (r: DayReward) => number) => list.reduce((s, [, r]) => s + pick(r), 0);
   const count = (pick: (r: DayReward) => number) => list.filter(([, r]) => pick(r) > 0).length;
   const achievements = (r: DayReward) =>
-    r.achievements.noSpend + r.achievements.keptLimit + r.achievements.onTime + r.achievements.noDelivery;
+    r.achievements.noSpend + r.achievements.keptLimit + r.achievements.onTime + r.achievements.noDelivery + r.achievements.cafe;
   const rewards = weekRewardTotal(list.map(([, r]) => r));
   return {
     week,

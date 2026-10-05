@@ -110,7 +110,7 @@ describe("말해보카·학교 도착", () => {
     await call("POST", "/arrive/school", kst("2026-10-05T08:50:00"), "p-token");
     const w = await call("GET", "/widget", kst("2026-10-05T12:00:00"), "p-token");
     expect(w.body.rewardsToday.malhae.amount).toBe(500);
-    expect(w.body.achievementsToday).toEqual({ noSpend: "ongoing", keptLimit: "ongoing", noDelivery: "ongoing", onTime: "earned" });
+    expect(w.body.achievementsToday).toEqual({ noSpend: "ongoing", keptLimit: "ongoing", noDelivery: "ongoing", onTime: "earned", cafe: "none" });
   });
 });
 
@@ -136,5 +136,16 @@ describe("출석 업적 상태", () => {
     expect((await call("GET", "/widget", kst("2026-10-06T08:00:00"), "p-token")).body.achievementsToday.onTime).toBe("none");
     await call("POST", "/arrive/school", kst("2026-10-05T08:50:00"), "p-token");
     expect((await call("GET", "/widget", kst("2026-10-05T09:30:00"), "p-token")).body.achievementsToday.onTime).toBe("earned");
+  });
+});
+
+describe("스터디카페 업적", () => {
+  it("카페 와이파이 도착을 보내면 그날 업적 500원, 학교 도착과는 따로 센다", async () => {
+    await call("POST", "/arrive/cafe", kst("2026-10-06T14:00:00"), "p-token");
+    const before = await call("GET", "/week", kst("2026-10-06T15:00:00"), "p-token");
+    expect(before.body.categories.achievements.amount).toBeGreaterThanOrEqual(500);
+    const w = await call("GET", "/widget", kst("2026-10-06T15:00:00"), "p-token");
+    expect(w.body.achievementsToday.cafe).toBe("earned");
+    expect(w.body.achievementsToday.onTime).toBe("none"); // 시간표가 없어서 출석은 해당 없음
   });
 });

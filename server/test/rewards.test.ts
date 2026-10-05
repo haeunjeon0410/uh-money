@@ -27,12 +27,12 @@ describe("매일 보상", () => {
 });
 
 describe("업적은 하루 상한과 별개", () => {
-  it("매일 보상 10,000원 + 무지출 3,000 + 한도 500 + 출석 500 + 배달 안 함 500 = 14,500원", () => {
+  it("매일 보상 10,000원 + 무지출 3,000 + 한도 500 + 출석 500 + 배달 안 함 500 + 스카 500 = 15,000원", () => {
     const r = rewardFor(
       { exercised: true, studyMinutes: 400, commits: 25, malhaeMinutes: 30, psat: true },
-      { noSpend: true, keptLimit: true, onTime: true, noDelivery: true },
+      { noSpend: true, keptLimit: true, onTime: true, noDelivery: true, cafe: true },
     );
-    expect(r.total).toBe(14_500);
+    expect(r.total).toBe(15_000);
   });
 });
 
@@ -40,9 +40,9 @@ describe("주간 보상", () => {
   it("주간 상한은 없고 하루 보상을 그대로 합친다", () => {
     const max = rewardFor(
       { exercised: true, studyMinutes: 400, commits: 25, malhaeMinutes: 30, psat: true },
-      { noSpend: true, keptLimit: true, onTime: true, noDelivery: true },
+      { noSpend: true, keptLimit: true, onTime: true, noDelivery: true, cafe: true },
     );
-    expect(weekRewardTotal(Array(7).fill(max))).toBe(14_500 * 7);
+    expect(weekRewardTotal(Array(7).fill(max))).toBe(15_000 * 7);
     expect(weekRewardTotal([rewardFor({ ...none, exercised: true })])).toBe(3_000);
   });
 });

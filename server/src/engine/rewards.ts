@@ -21,6 +21,7 @@ export interface DayAchievements {
   keptLimit: boolean;
   onTime: boolean;
   noDelivery: boolean;
+  cafe: boolean;
 }
 
 export interface DayReward {
@@ -30,11 +31,11 @@ export interface DayReward {
   malhae: number;
   psat: number;
   daily: number; // 매일 보상 합계 (하루 상한 적용)
-  achievements: { noSpend: number; keptLimit: number; onTime: number; noDelivery: number };
+  achievements: { noSpend: number; keptLimit: number; onTime: number; noDelivery: number; cafe: number };
   total: number; // daily + 업적. 기본금은 포함하지 않는다
 }
 
-export const NO_ACHIEVEMENTS: DayAchievements = { noSpend: false, keptLimit: false, onTime: false, noDelivery: false };
+export const NO_ACHIEVEMENTS: DayAchievements = { noSpend: false, keptLimit: false, onTime: false, noDelivery: false, cafe: false };
 
 export function rewardFor(a: DayActivity, ach: DayAchievements = NO_ACHIEVEMENTS, rules: Rules = RULES): DayReward {
   const exercise = a.exercised ? rules.exercise : 0;
@@ -49,8 +50,9 @@ export function rewardFor(a: DayActivity, ach: DayAchievements = NO_ACHIEVEMENTS
     keptLimit: ach.keptLimit ? rules.keptLimit : 0,
     onTime: ach.onTime ? rules.onTime : 0,
     noDelivery: ach.noDelivery ? rules.noDelivery : 0,
+    cafe: ach.cafe ? rules.cafe : 0,
   };
-  const total = daily + achievements.noSpend + achievements.keptLimit + achievements.onTime + achievements.noDelivery;
+  const total = daily + achievements.noSpend + achievements.keptLimit + achievements.onTime + achievements.noDelivery + achievements.cafe;
   return { exercise, study, commit, malhae, psat, daily, achievements, total };
 }
 

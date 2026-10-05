@@ -24,6 +24,7 @@ export const RULES = {
   onTime: 500, // 학교에 첫 수업 시작 전 도착
   onTimeGraceMinutes: 0, // 첫 수업 시작 후 몇 분까지 제시간으로 칠지. 정각까지만 인정하고, 실제 감지 지연을 보고 늘린다
   noDelivery: 500, // 배달 결제 0건
+  cafe: 500, // 스터디카페 와이파이에 연결됨 (하루 1회)
 
   allowanceRounding: 100, // 오늘 쓸 돈은 100원 단위 내림
 } as const;
